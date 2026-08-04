@@ -1,4 +1,11 @@
 import { useState } from "react";
+import {
+  PackagePlus,
+  Save,
+  RotateCcw,
+  X,
+} from "lucide-react";
+
 import type { Product } from "../types/Product";
 
 interface ProductFormProps {
@@ -13,14 +20,13 @@ interface ProductFormProps {
 
 function ProductForm({
   addProduct,
-
   editingProduct,
-
   updateProduct,
-
   setEditingProduct,
 }: ProductFormProps) {
-  const [name, setName] = useState(editingProduct ? editingProduct.name : "");
+  const [name, setName] = useState(
+    editingProduct ? editingProduct.name : "",
+  );
 
   const [category, setCategory] = useState(
     editingProduct ? editingProduct.category : "",
@@ -30,7 +36,9 @@ function ProductForm({
     editingProduct ? editingProduct.quantity : 0,
   );
 
-  const [price, setPrice] = useState(editingProduct ? editingProduct.price : 0);
+  const [price, setPrice] = useState(
+    editingProduct ? editingProduct.price : 0,
+  );
 
   const [error, setError] = useState("");
 
@@ -69,8 +77,10 @@ function ProductForm({
 
     setError("");
 
-    const product = {
-      id: editingProduct ? editingProduct.id : Date.now(),
+    const product: Product = {
+      id: editingProduct
+        ? editingProduct.id
+        : Date.now(),
 
       name,
       category,
@@ -80,157 +90,288 @@ function ProductForm({
 
     if (editingProduct) {
       updateProduct(product);
-
-      setEditingProduct(null);
     } else {
       addProduct(product);
     }
 
     clearForm();
   }
-  return (
-    <section className="bg-white shadow-md rounded-xl p-6 mt-6">
-      <h2 className="text-2xl font-bold mb-5">
-        {editingProduct ? "Editar Produto" : "Cadastro de Produto"}
-      </h2>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+  return (
+    <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+      {/* Cabeçalho */}
+      <div className="mb-6 flex items-center gap-3">
+
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+          <PackagePlus size={23} />
+        </div>
+
+        <div>
+          <h2 className="text-xl font-bold text-slate-800">
+            {editingProduct
+              ? "Editar Produto"
+              : "Adicionar Produto"}
+          </h2>
+
+          <p className="mt-1 text-sm text-slate-500">
+            {editingProduct
+              ? "Atualize as informações do produto"
+              : "Preencha os dados para cadastrar"}
+          </p>
+        </div>
+
+      </div>
+
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-5"
+      >
+
+        {/* Mensagem de erro */}
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 rounded-lg p-3">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600">
             {error}
           </div>
         )}
+
+        {/* Nome */}
         <div>
-          <label className="block mb-1 font-medium">Nome do produto</label>
+
+          <label
+            htmlFor="name"
+            className="mb-2 block text-sm font-semibold text-slate-700"
+          >
+            Nome do produto
+          </label>
 
           <input
+            id="name"
             type="text"
             placeholder="Ex: Mouse Logitech"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(event) =>
+              setName(event.target.value)
+            }
             className="
-                        w-full
-                        border
-                        rounded-lg
-                        p-3
-                        outline-none
-                        focus:ring-2
-                        focus:ring-blue-500
-                    "
+              w-full
+              rounded-xl
+              border
+              border-slate-300
+              bg-slate-50
+              px-4
+              py-3
+              text-slate-800
+              outline-none
+              transition
+              placeholder:text-slate-400
+              focus:border-blue-500
+              focus:bg-white
+              focus:ring-4
+              focus:ring-blue-100
+            "
           />
+
         </div>
 
+        {/* Categoria */}
         <div>
-          <label className="block mb-1 font-medium">Categoria</label>
+
+          <label
+            htmlFor="category"
+            className="mb-2 block text-sm font-semibold text-slate-700"
+          >
+            Categoria
+          </label>
 
           <input
+            id="category"
             type="text"
-            placeholder="Ex: Periférico"
+            placeholder="Ex: Periféricos"
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(event) =>
+              setCategory(event.target.value)
+            }
             className="
-                        w-full
-                        border
-                        rounded-lg
-                        p-3
-                        outline-none
-                        focus:ring-2
-                        focus:ring-blue-500
-                    "
+              w-full
+              rounded-xl
+              border
+              border-slate-300
+              bg-slate-50
+              px-4
+              py-3
+              text-slate-800
+              outline-none
+              transition
+              placeholder:text-slate-400
+              focus:border-blue-500
+              focus:bg-white
+              focus:ring-4
+              focus:ring-blue-100
+            "
           />
+
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block mb-1 font-medium">Quantidade</label>
+        {/* Quantidade */}
+        <div>
 
-            <input
-              type="number"
-              value={quantity}
-              onChange={(e) => setQuantity(Number(e.target.value))}
-              className="
-                            w-full
-                            border
-                            rounded-lg
-                            p-3
-                        "
-              min="0"
-            />
-          </div>
-
-          <div>
-            <label className="block mb-1 font-medium">Preço</label>
-
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
-              className="
-                            w-full
-                            border
-                            rounded-lg
-                            p-3
-                        "
-              min="0"
-            />
-          </div>
-        </div>
-
-        <div className="flex gap-3">
-          <button
-            type="submit"
-            className="
-      bg-blue-600
-      text-white
-      px-6
-      py-3
-      rounded-lg
-      hover:bg-blue-700
-      transition
-      font-medium
-    "
+          <label
+            htmlFor="quantity"
+            className="mb-2 block text-sm font-semibold text-slate-700"
           >
-            {editingProduct ? "Salvar Alterações" : "Adicionar Produto"}
-          </button>
+            Quantidade
+          </label>
 
-          {editingProduct && (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingProduct(null);
-              }}
-              className="
-        bg-gray-300
-        text-gray-800
-        px-6
-        py-3
-        rounded-lg
-        hover:bg-gray-400
-        transition
-        font-medium
-      "
-            >
-              Cancelar
-            </button>
-          )}
+          <input
+            id="quantity"
+            type="number"
+            value={quantity}
+            onChange={(event) =>
+              setQuantity(Number(event.target.value))
+            }
+            min="0"
+            className="
+              w-full
+              rounded-xl
+              border
+              border-slate-300
+              bg-slate-50
+              px-4
+              py-3
+              text-slate-800
+              outline-none
+              transition
+              focus:border-blue-500
+              focus:bg-white
+              focus:ring-4
+              focus:ring-blue-100
+            "
+          />
+
         </div>
+
+        {/* Preço */}
+        <div>
+
+          <label
+            htmlFor="price"
+            className="mb-2 block text-sm font-semibold text-slate-700"
+          >
+            Preço unitário
+          </label>
+
+          <input
+            id="price"
+            type="number"
+            value={price}
+            onChange={(event) =>
+              setPrice(Number(event.target.value))
+            }
+            min="0"
+            step="0.01"
+            className="
+              w-full
+              rounded-xl
+              border
+              border-slate-300
+              bg-slate-50
+              px-4
+              py-3
+              text-slate-800
+              outline-none
+              transition
+              focus:border-blue-500
+              focus:bg-white
+              focus:ring-4
+              focus:ring-blue-100
+            "
+          />
+
+        </div>
+
+        {/* Botão principal */}
         <button
-          type="button"
-          onClick={clearForm}
+          type="submit"
           className="
-    bg-gray-500
-    text-white
-    px-6
-    py-3
-    rounded-lg
-    hover:bg-gray-600
-    transition
-    font-medium
-    ml-3
-  "
+            flex
+            w-full
+            items-center
+            justify-center
+            gap-2
+            rounded-xl
+            bg-blue-600
+            px-5
+            py-3.5
+            font-semibold
+            text-white
+            shadow-sm
+            transition
+            hover:bg-blue-700
+            hover:shadow-md
+          "
         >
-          Limpar
+          <Save size={20} />
+
+          {editingProduct
+            ? "Salvar alterações"
+            : "Adicionar produto"}
         </button>
+
+        {/* Cancelar edição */}
+        {editingProduct && (
+          <button
+            type="button"
+            onClick={clearForm}
+            className="
+              flex
+              w-full
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              border
+              border-red-200
+              bg-red-50
+              px-5
+              py-3
+              font-semibold
+              text-red-600
+              transition
+              hover:bg-red-100
+            "
+          >
+            <X size={19} />
+            Cancelar edição
+          </button>
+        )}
+
+        {/* Limpar */}
+        {!editingProduct && (
+          <button
+            type="button"
+            onClick={clearForm}
+            className="
+              flex
+              w-full
+              items-center
+              justify-center
+              gap-2
+              rounded-xl
+              bg-slate-800
+              px-5
+              py-3
+              font-semibold
+              text-white
+              transition
+              hover:bg-slate-900
+            "
+          >
+            <RotateCcw size={19} />
+            Limpar campos
+          </button>
+        )}
+
       </form>
     </section>
   );
