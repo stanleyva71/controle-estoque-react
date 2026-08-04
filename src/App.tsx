@@ -1,5 +1,6 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
+import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
 import ProductForm from "./components/ProductForm";
@@ -9,79 +10,94 @@ import type { Product } from "./types/Product";
 
 function App() {
   const [products, setProducts] = useState<Product[]>(() => {
-
     const savedProducts = localStorage.getItem("products");
 
-    if(savedProducts){
-        return JSON.parse(savedProducts);
+    if (savedProducts) {
+      return JSON.parse(savedProducts);
     }
 
     return [];
+  });
 
-});
-
-
-const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] =
+    useState<Product | null>(null);
 
   useEffect(() => {
-    localStorage.setItem("products", JSON.stringify(products));
+    localStorage.setItem(
+      "products",
+      JSON.stringify(products)
+    );
   }, [products]);
 
   function addProduct(product: Product) {
     setProducts([...products, product]);
   }
+
   function deleteProduct(id: number) {
-    const newProducts = products.filter((product) => product.id !== id);
+    const newProducts = products.filter(
+      (product) => product.id !== id
+    );
 
     setProducts(newProducts);
   }
+
   function editProduct(product: Product) {
-
     setEditingProduct(product);
+  }
 
-}
-  function updateProduct(updatedProduct: Product){
-
-    const updatedProducts = products.map(product =>
-
+  function updateProduct(
+    updatedProduct: Product
+  ) {
+    const updatedProducts = products.map(
+      (product) =>
         product.id === updatedProduct.id
-        ? updatedProduct
-        : product
-
+          ? updatedProduct
+          : product
     );
 
     setProducts(updatedProducts);
 
     setEditingProduct(null);
-
-}
+  }
 
   return (
-    <>
-      <Header />
+    <div className="flex min-h-screen bg-slate-100">
 
-      <main className="max-w-5xl mx-auto">
-        <Dashboard products={products} />
+      <Sidebar />
 
-        <ProductForm
-  key={editingProduct?.id ?? "new"}
+      <div className="min-w-0 flex-1">
 
-  addProduct={addProduct}
+        <Header />
 
-  editingProduct={editingProduct}
+        <main className="mx-auto max-w-[1500px] p-8">
 
-  updateProduct={updateProduct}
+          <Dashboard products={products} />
 
-  setEditingProduct={setEditingProduct}
-/>
+          <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-[360px_1fr]">
 
-        <ProductList
-          products={products}
-          deleteProduct={deleteProduct}
-          editProduct={editProduct}
-        />
-      </main>
-    </>
+            <ProductForm
+              key={editingProduct?.id ?? "new"}
+              addProduct={addProduct}
+              editingProduct={editingProduct}
+              updateProduct={updateProduct}
+              setEditingProduct={
+                setEditingProduct
+              }
+            />
+
+            <ProductList
+              products={products}
+              deleteProduct={deleteProduct}
+              editProduct={editProduct}
+            />
+
+          </div>
+
+        </main>
+
+      </div>
+
+    </div>
   );
 }
 
