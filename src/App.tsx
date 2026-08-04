@@ -61,43 +61,50 @@ function App() {
   }
 
   return (
-    <div className="flex min-h-screen bg-slate-100">
+    <div className="min-h-screen bg-slate-100 lg:flex">
 
-      <Sidebar />
+  <Sidebar />
 
-      <div className="min-w-0 flex-1">
+  <div className="min-w-0 flex-1">
 
-        <Header />
+    <Header />
 
-        <main className="mx-auto max-w-[1500px] p-8">
+    <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
 
-          <Dashboard products={products} />
+      <Dashboard products={products} />
 
-          <div className="mt-8 grid grid-cols-1 gap-8 xl:grid-cols-[360px_1fr]">
+      <div
+        className="
+          mt-8
+          grid
+          grid-cols-1
+          items-start
+          gap-8
+          2xl:grid-cols-[380px_minmax(0,1fr)]
+        "
+      >
 
-            <ProductForm
-              key={editingProduct?.id ?? "new"}
-              addProduct={addProduct}
-              editingProduct={editingProduct}
-              updateProduct={updateProduct}
-              setEditingProduct={
-                setEditingProduct
-              }
-            />
+        <ProductForm
+          key={editingProduct?.id ?? "new"}
+          addProduct={addProduct}
+          editingProduct={editingProduct}
+          updateProduct={updateProduct}
+          setEditingProduct={setEditingProduct}
+        />
 
-            <ProductList
-              products={products}
-              deleteProduct={deleteProduct}
-              editProduct={editProduct}
-            />
-
-          </div>
-
-        </main>
+        <ProductList
+          products={products}
+          deleteProduct={deleteProduct}
+          editProduct={editProduct}
+        />
 
       </div>
 
-    </div>
+    </main>
+
+  </div>
+
+</div>
   );
 }
 

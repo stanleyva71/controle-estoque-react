@@ -11,7 +11,22 @@ import {
 
 function Sidebar() {
   return (
-    <aside className="flex min-h-screen w-72 flex-col border-r border-slate-700 bg-slate-950 text-white">
+    <aside
+  className="
+    flex
+    w-full
+    flex-col
+    bg-slate-950
+    text-white
+    lg:sticky
+    lg:top-0
+    lg:h-screen
+    lg:w-72
+    lg:flex-shrink-0
+    lg:border-r
+    lg:border-slate-800
+  "
+>
       
       {/* Logo */}
       <div className="flex items-center gap-3 border-b border-slate-800 px-6 py-7">
