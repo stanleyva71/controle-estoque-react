@@ -1,4 +1,5 @@
 import { useState } from "react";
+import DeleteModal from "./DeleteModal";
 
 import {
   Search,
@@ -32,6 +33,8 @@ function ProductList({
   const [sortOption, setSortOption] = useState("name");
 
   const [showLowStock, setShowLowStock] = useState(false);
+
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
   const categories = [...new Set(products.map((product) => product.category))];
 
@@ -74,7 +77,7 @@ function ProductList({
     return 0;
   });
 
-  return (
+  return (  
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       {/* Cabeçalho */}
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -375,13 +378,7 @@ function ProductList({
                         <button
                           type="button"
                           onClick={() => {
-                            const confirmed = window.confirm(
-                              `Deseja realmente excluir o produto "${product.name}"?`,
-                            );
-
-                            if (confirmed) {
-                              deleteProduct(product.id);
-                            }
+                            setProductToDelete(product);
                           }}
                           className="
                               flex
@@ -408,6 +405,22 @@ function ProductList({
             </tbody>
           </table>
         </div>
+            )}
+
+      {productToDelete && (
+        <DeleteModal
+          productName={productToDelete.name}
+          onCancel={() => {
+            setProductToDelete(null);
+          }}
+          onConfirm={() => {
+            deleteProduct(
+              productToDelete.id
+            );
+
+            setProductToDelete(null);
+          }}
+        />
       )}
     </section>
   );
