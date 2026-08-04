@@ -1,10 +1,5 @@
 import { useState } from "react";
-import {
-  PackagePlus,
-  Save,
-  RotateCcw,
-  X,
-} from "lucide-react";
+import { PackagePlus, Save, RotateCcw, X } from "lucide-react";
 
 import type { Product } from "../types/Product";
 
@@ -24,9 +19,7 @@ function ProductForm({
   updateProduct,
   setEditingProduct,
 }: ProductFormProps) {
-  const [name, setName] = useState(
-    editingProduct ? editingProduct.name : "",
-  );
+  const [name, setName] = useState(editingProduct ? editingProduct.name : "");
 
   const [category, setCategory] = useState(
     editingProduct ? editingProduct.category : "",
@@ -36,9 +29,11 @@ function ProductForm({
     editingProduct ? editingProduct.quantity : 0,
   );
 
-  const [price, setPrice] = useState(
-    editingProduct ? editingProduct.price : 0,
-  );
+  const [price, setPrice] = useState(editingProduct ? editingProduct.price : 0);
+
+  const [image, setImage] = useState(
+  editingProduct ? editingProduct.image ?? "" : "",
+);
 
   const [error, setError] = useState("");
 
@@ -47,6 +42,7 @@ function ProductForm({
     setCategory("");
     setQuantity(0);
     setPrice(0);
+    setImage("");
     setError("");
 
     setEditingProduct(null);
@@ -78,14 +74,13 @@ function ProductForm({
     setError("");
 
     const product: Product = {
-      id: editingProduct
-        ? editingProduct.id
-        : Date.now(),
+      id: editingProduct ? editingProduct.id : Date.now(),
 
       name,
       category,
       quantity,
       price,
+      image,
     };
 
     if (editingProduct) {
@@ -99,19 +94,15 @@ function ProductForm({
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-
       {/* Cabeçalho */}
       <div className="mb-6 flex items-center gap-3">
-
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
           <PackagePlus size={23} />
         </div>
 
         <div>
           <h2 className="text-xl font-bold text-slate-800">
-            {editingProduct
-              ? "Editar Produto"
-              : "Adicionar Produto"}
+            {editingProduct ? "Editar Produto" : "Adicionar Produto"}
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
@@ -120,14 +111,9 @@ function ProductForm({
               : "Preencha os dados para cadastrar"}
           </p>
         </div>
-
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="space-y-5"
-      >
-
+      <form onSubmit={handleSubmit} className="space-y-5">
         {/* Mensagem de erro */}
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600">
@@ -135,9 +121,43 @@ function ProductForm({
           </div>
         )}
 
+        {/* Imagem */}
+        <div>
+          <label
+            htmlFor="image"
+            className="mb-2 block text-sm font-semibold text-slate-700"
+          >
+            Imagem do produto
+          </label>
+
+          <input
+            id="image"
+            type="text"
+            placeholder="Cole a URL da imagem"
+            value={image}
+            onChange={(event) => setImage(event.target.value)}
+            className="
+      w-full
+      rounded-xl
+      border
+      border-slate-300
+      bg-slate-50
+      px-4
+      py-3
+      text-slate-800
+      outline-none
+      transition
+      placeholder:text-slate-400
+      focus:border-blue-500
+      focus:bg-white
+      focus:ring-4
+      focus:ring-blue-100
+    "
+          />
+        </div>
+
         {/* Nome */}
         <div>
-
           <label
             htmlFor="name"
             className="mb-2 block text-sm font-semibold text-slate-700"
@@ -150,9 +170,7 @@ function ProductForm({
             type="text"
             placeholder="Ex: Mouse Logitech"
             value={name}
-            onChange={(event) =>
-              setName(event.target.value)
-            }
+            onChange={(event) => setName(event.target.value)}
             className="
               w-full
               rounded-xl
@@ -171,12 +189,10 @@ function ProductForm({
               focus:ring-blue-100
             "
           />
-
         </div>
 
         {/* Categoria */}
         <div>
-
           <label
             htmlFor="category"
             className="mb-2 block text-sm font-semibold text-slate-700"
@@ -189,9 +205,7 @@ function ProductForm({
             type="text"
             placeholder="Ex: Periféricos"
             value={category}
-            onChange={(event) =>
-              setCategory(event.target.value)
-            }
+            onChange={(event) => setCategory(event.target.value)}
             className="
               w-full
               rounded-xl
@@ -210,12 +224,10 @@ function ProductForm({
               focus:ring-blue-100
             "
           />
-
         </div>
 
         {/* Quantidade */}
         <div>
-
           <label
             htmlFor="quantity"
             className="mb-2 block text-sm font-semibold text-slate-700"
@@ -227,9 +239,7 @@ function ProductForm({
             id="quantity"
             type="number"
             value={quantity}
-            onChange={(event) =>
-              setQuantity(Number(event.target.value))
-            }
+            onChange={(event) => setQuantity(Number(event.target.value))}
             min="0"
             className="
               w-full
@@ -248,12 +258,10 @@ function ProductForm({
               focus:ring-blue-100
             "
           />
-
         </div>
 
         {/* Preço */}
         <div>
-
           <label
             htmlFor="price"
             className="mb-2 block text-sm font-semibold text-slate-700"
@@ -265,9 +273,7 @@ function ProductForm({
             id="price"
             type="number"
             value={price}
-            onChange={(event) =>
-              setPrice(Number(event.target.value))
-            }
+            onChange={(event) => setPrice(Number(event.target.value))}
             min="0"
             step="0.01"
             className="
@@ -287,7 +293,6 @@ function ProductForm({
               focus:ring-blue-100
             "
           />
-
         </div>
 
         {/* Botão principal */}
@@ -314,9 +319,7 @@ function ProductForm({
         >
           <Save size={20} />
 
-          {editingProduct
-            ? "Salvar alterações"
-            : "Adicionar produto"}
+          {editingProduct ? "Salvar alterações" : "Adicionar produto"}
         </button>
 
         {/* Cancelar edição */}
@@ -374,7 +377,6 @@ function ProductForm({
             Limpar campos
           </button>
         )}
-
       </form>
     </section>
   );

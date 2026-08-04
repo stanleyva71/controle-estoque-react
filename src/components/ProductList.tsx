@@ -77,7 +77,7 @@ function ProductList({
     return 0;
   });
 
-  return (  
+  return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       {/* Cabeçalho */}
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
@@ -306,9 +306,24 @@ function ProductList({
                   >
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-600">
-                          {product.name.charAt(0).toUpperCase()}
-                        </div>
+                        {product.image ? (
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="
+      h-10
+      w-10
+      rounded-lg
+      object-cover
+      border
+      border-slate-200
+    "
+                          />
+                        ) : (
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-600">
+                            {product.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
 
                         <div>
                           <p className="font-semibold text-slate-800">
@@ -405,7 +420,7 @@ function ProductList({
             </tbody>
           </table>
         </div>
-            )}
+      )}
 
       {productToDelete && (
         <DeleteModal
@@ -414,9 +429,7 @@ function ProductList({
             setProductToDelete(null);
           }}
           onConfirm={() => {
-            deleteProduct(
-              productToDelete.id
-            );
+            deleteProduct(productToDelete.id);
 
             setProductToDelete(null);
           }}
