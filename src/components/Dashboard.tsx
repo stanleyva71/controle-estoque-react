@@ -1,3 +1,10 @@
+import {
+  Package,
+  TriangleAlert,
+  Tags,
+  DollarSign,
+} from "lucide-react";
+
 import type { Product } from "../types/Product";
 
 interface DashboardProps {
@@ -7,45 +14,111 @@ interface DashboardProps {
 function Dashboard({ products }: DashboardProps) {
   const totalProducts = products.length;
 
-  const totalValue = products.reduce((total, product) => {
-    return total + product.quantity * product.price;
-  }, 0);
+  const lowStockProducts = products.filter(
+    (product) => product.quantity <= 5
+  ).length;
 
-  const lowStockProducts = products.filter((product) => {
-    return product.quantity <= 5;
-  });
+  const totalCategories = new Set(
+    products.map((product) => product.category)
+  ).size;
 
-  const lowStockCount = lowStockProducts.length;
+  const totalStockValue = products.reduce(
+    (total, product) =>
+      total + product.quantity * product.price,
+    0
+  );
 
   return (
-    <section className="p-6">
-      <h2 className="text-2xl font-bold mb-5">Dashboard</h2>
+    <section>
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-        <div className="bg-white shadow-md rounded-xl p-5">
-          <h3 className="text-gray-500">Produtos cadastrados</h3>
+        {/* Total de produtos */}
+        <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+            <Package size={30} />
+          </div>
 
-          <p className="text-4xl font-bold mt-2">{totalProducts}</p>
+          <div>
+            <p className="text-sm font-medium text-slate-500">
+              Total de Produtos
+            </p>
+
+            <p className="mt-1 text-3xl font-bold text-slate-800">
+              {totalProducts}
+            </p>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Produtos cadastrados
+            </p>
+          </div>
         </div>
 
-        <div className="bg-white shadow-md rounded-xl p-5">
-          <h3 className="text-gray-500">Valor em estoque</h3>
+        {/* Estoque baixo */}
+        <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-500">
+            <TriangleAlert size={30} />
+          </div>
 
-          <p className="text-4xl font-bold mt-2">
-            {new Intl.NumberFormat("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            }).format(totalValue)}
-          </p>
+          <div>
+            <p className="text-sm font-medium text-slate-500">
+              Estoque Baixo
+            </p>
+
+            <p className="mt-1 text-3xl font-bold text-slate-800">
+              {lowStockProducts}
+            </p>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Produtos com pouco estoque
+            </p>
+          </div>
         </div>
 
-        <div className="bg-white shadow-md rounded-xl p-5">
-          <h3 className="text-gray-500">Produtos com estoque baixo</h3>
+        {/* Categorias */}
+        <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
+            <Tags size={30} />
+          </div>
 
-          <p className="text-4xl font-bold text-red-600 mt-2">
-            ⚠️ {lowStockCount}
-          </p>
+          <div>
+            <p className="text-sm font-medium text-slate-500">
+              Categorias
+            </p>
+
+            <p className="mt-1 text-3xl font-bold text-slate-800">
+              {totalCategories}
+            </p>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Categorias cadastradas
+            </p>
+          </div>
         </div>
+
+        {/* Valor total */}
+        <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-700">
+            <DollarSign size={30} />
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-slate-500">
+              Valor Total em Estoque
+            </p>
+
+            <p className="mt-1 text-2xl font-bold text-slate-800">
+              {totalStockValue.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              })}
+            </p>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Valor total dos produtos
+            </p>
+          </div>
+        </div>
+
       </div>
     </section>
   );
