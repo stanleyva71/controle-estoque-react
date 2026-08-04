@@ -1,75 +1,134 @@
-# React + TypeScript + Vite
+# 📦 Sistema de Controle de Estoque
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Aplicação web desenvolvida para gerenciamento de produtos em estoque, permitindo cadastrar, editar, excluir, pesquisar e organizar produtos através de uma interface moderna e responsiva.
 
-Currently, two official plugins are available:
+Projeto desenvolvido com foco em prática de desenvolvimento Front-end utilizando React, TypeScript e Tailwind CSS.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## 🚀 Tecnologias utilizadas
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Front-end
+- React
+- TypeScript
+- Tailwind CSS
+- Vite
 
-## Expanding the ESLint configuration
+### Bibliotecas
+- Lucide React (ícones)
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### Ferramentas
+- Git
+- GitHub
+- NPM
+- VS Code
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## ✨ Funcionalidades
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+### 📦 Produtos
+- Cadastro de produtos
+- Edição de produtos
+- Exclusão com confirmação
+- Adição de imagem dos produtos
+- Persistência dos dados utilizando LocalStorage
 
-```
+### 🔎 Busca e organização
+- Pesquisa por nome ou categoria
+- Filtro por categoria
+- Filtro de produtos com estoque baixo
+- Ordenação por:
+  - Nome
+  - Quantidade
+  - Preço
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### 📊 Dashboard
+- Total de produtos cadastrados
+- Produtos com estoque baixo
+- Quantidade de categorias
+- Valor total do estoque
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## 🖥️ Interface
+
+- Layout responsivo
+- Dashboard administrativo
+- Sidebar de navegação
+- Formulário de cadastro
+- Tabela de produtos
+- Feedback visual através de mensagens de sucesso e erro
+
+---
+
+## 📂 Estrutura do projeto
 
 ```
+src
+├── components
+│   ├── Dashboard.tsx
+│   ├── Header.tsx
+│   ├── Sidebar.tsx
+│   ├── ProductForm.tsx
+│   ├── ProductList.tsx
+│   ├── Toast.tsx
+│   └── DeleteModal.tsx
+│
+├── types
+│   └── Product.ts
+│
+├── App.tsx
+└── main.tsx
+```
+
+---
+
+## ▶️ Como executar
+
+Clone o projeto:
+
+```bash
+git clone URL_DO_REPOSITORIO
+```
+
+Entre na pasta:
+
+```bash
+cd nome-do-projeto
+```
+
+Instale as dependências:
+
+```bash
+npm install
+```
+
+Execute:
+
+```bash
+npm run dev
+```
+
+---
+
+## 🧠 Conceitos aplicados
+
+- Componentização em React
+- Hooks (`useState`, `useEffect`, `useRef`)
+- Tipagem com TypeScript
+- Manipulação de estados
+- Renderização dinâmica de listas
+- Organização de componentes
+- Persistência de dados no navegador
+
+---
+
+## 👨‍💻 Desenvolvedor
+
+**Stanley Vale**
+
+Estudante de Gestão da Tecnologia da Informação buscando oportunidades na área de desenvolvimento de software.
+
+LinkedIn:
+www.linkedin.com/in/stanleyvale
