@@ -20,3 +20,19 @@ select {
 button {
   cursor: pointer;
 }
+
+@keyframes toast-enter {
+  from {
+    opacity: 0;
+    transform: translateX(40px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.toast-enter {
+  animation: toast-enter 0.35s ease-out;
+}

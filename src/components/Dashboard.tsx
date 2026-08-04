@@ -60,7 +60,10 @@ function Dashboard({ products }: DashboardProps) {
         </div>
 
         {/* Estoque baixo */}
-        <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition
+    duration-200
+    hover:-translate-y-1
+    hover:shadow-md">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-500">
             <TriangleAlert size={30} />
           </div>
@@ -79,7 +82,10 @@ function Dashboard({ products }: DashboardProps) {
         </div>
 
         {/* Categorias */}
-        <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition
+    duration-200
+    hover:-translate-y-1
+    hover:shadow-md">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
             <Tags size={30} />
           </div>
@@ -98,7 +104,10 @@ function Dashboard({ products }: DashboardProps) {
         </div>
 
         {/* Valor total */}
-        <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition
+    duration-200
+    hover:-translate-y-1
+    hover:shadow-md">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-700">
             <DollarSign size={30} />
           </div>

@@ -1,5 +1,5 @@
+import Toast from "./components/Toast";
 import { useEffect, useState } from "react";
-
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
@@ -19,62 +19,63 @@ function App() {
     return [];
   });
 
-  const [editingProduct, setEditingProduct] =
-    useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const [toastMessage, setToastMessage] = useState("");
 
   useEffect(() => {
-    localStorage.setItem(
-      "products",
-      JSON.stringify(products)
-    );
+    localStorage.setItem("products", JSON.stringify(products));
   }, [products]);
 
   function addProduct(product: Product) {
     setProducts([...products, product]);
+
+    setToastMessage(`"${product.name}" foi adicionado com sucesso!`);
   }
 
   function deleteProduct(id: number) {
-    const newProducts = products.filter(
-      (product) => product.id !== id
-    );
+    const productToDelete = products.find((product) => product.id === id);
+
+    const newProducts = products.filter((product) => product.id !== id);
 
     setProducts(newProducts);
+
+    if (productToDelete) {
+      setToastMessage(`"${productToDelete.name}" foi excluído com sucesso!`);
+    }
   }
 
   function editProduct(product: Product) {
     setEditingProduct(product);
   }
 
-  function updateProduct(
-    updatedProduct: Product
-  ) {
-    const updatedProducts = products.map(
-      (product) =>
-        product.id === updatedProduct.id
-          ? updatedProduct
-          : product
+  function updateProduct(updatedProduct: Product) {
+    const updatedProducts = products.map((product) =>
+      product.id === updatedProduct.id ? updatedProduct : product,
     );
 
     setProducts(updatedProducts);
 
     setEditingProduct(null);
+
+    setToastMessage(`"${updatedProduct.name}" foi atualizado com sucesso!`);
   }
 
   return (
     <div className="min-h-screen bg-slate-100 lg:flex">
+      {toastMessage && (
+        <Toast message={toastMessage} onClose={() => setToastMessage("")} />
+      )}
+      <Sidebar />
 
-  <Sidebar />
+      <div className="min-w-0 flex-1">
+        <Header />
 
-  <div className="min-w-0 flex-1">
+        <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
+          <Dashboard products={products} />
 
-    <Header />
-
-    <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
-
-      <Dashboard products={products} />
-
-      <div
-        className="
+          <div
+            className="
           mt-8
           grid
           grid-cols-1
@@ -82,29 +83,24 @@ function App() {
           gap-8
           2xl:grid-cols-[380px_minmax(0,1fr)]
         "
-      >
+          >
+            <ProductForm
+              key={editingProduct?.id ?? "new"}
+              addProduct={addProduct}
+              editingProduct={editingProduct}
+              updateProduct={updateProduct}
+              setEditingProduct={setEditingProduct}
+            />
 
-        <ProductForm
-          key={editingProduct?.id ?? "new"}
-          addProduct={addProduct}
-          editingProduct={editingProduct}
-          updateProduct={updateProduct}
-          setEditingProduct={setEditingProduct}
-        />
-
-        <ProductList
-          products={products}
-          deleteProduct={deleteProduct}
-          editProduct={editProduct}
-        />
-
+            <ProductList
+              products={products}
+              deleteProduct={deleteProduct}
+              editProduct={editProduct}
+            />
+          </div>
+        </main>
       </div>
-
-    </main>
-
-  </div>
-
-</div>
+    </div>
   );
 }
 
