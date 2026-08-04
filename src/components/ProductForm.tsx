@@ -32,8 +32,8 @@ function ProductForm({
   const [price, setPrice] = useState(editingProduct ? editingProduct.price : 0);
 
   const [image, setImage] = useState(
-  editingProduct ? editingProduct.image ?? "" : "",
-);
+    editingProduct ? (editingProduct.image ?? "") : "",
+  );
 
   const [error, setError] = useState("");
 
@@ -136,23 +136,7 @@ function ProductForm({
             placeholder="Cole a URL da imagem"
             value={image}
             onChange={(event) => setImage(event.target.value)}
-            className="
-      w-full
-      rounded-xl
-      border
-      border-slate-300
-      bg-slate-50
-      px-4
-      py-3
-      text-slate-800
-      outline-none
-      transition
-      placeholder:text-slate-400
-      focus:border-blue-500
-      focus:bg-white
-      focus:ring-4
-      focus:ring-blue-100
-    "
+            className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
           />
         </div>
 

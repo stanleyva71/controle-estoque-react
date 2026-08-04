@@ -227,13 +227,7 @@ function ProductList({
           onChange={(event) => {
             setShowLowStock(event.target.checked);
           }}
-          className="
-            h-5
-            w-5
-            cursor-pointer
-            accent-blue-600
-          "
-        />
+          className="h-5 w-5 cursor-pointer accent-blue-600"/>
 
         <AlertTriangle size={20} className="text-amber-500" />
 
@@ -296,13 +290,7 @@ function ProductList({
                 return (
                   <tr
                     key={product.id}
-                    className="
-    border-b
-    border-slate-100
-    transition
-    duration-150
-    hover:bg-blue-50/40
-  "
+                    className="border-b border-slate-100 transition duration-150 hover:bg-blue-50/40"
                   >
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
@@ -310,14 +298,7 @@ function ProductList({
                           <img
                             src={product.image}
                             alt={product.name}
-                            className="
-      h-10
-      w-10
-      rounded-lg
-      object-cover
-      border
-      border-slate-200
-    "
+                            className="h-10 w-10 rounded-lg object-cover border border-slate-200"
                           />
                         ) : (
                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-600">

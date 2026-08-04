@@ -18,11 +18,10 @@ function App() {
 
     return [];
   });
-  
 
   const formRef = useRef<HTMLDivElement>(null);
   const [toastMessage, setToastMessage] = useState("");
-const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     localStorage.setItem("products", JSON.stringify(products));
@@ -49,7 +48,6 @@ const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   function editProduct(product: Product) {
     setEditingProduct(product);
   }
-
 
   function updateProduct(updatedProduct: Product) {
     const updatedProducts = products.map((product) =>
@@ -89,24 +87,16 @@ const [editingProduct, setEditingProduct] = useState<Product | null>(null);
         <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
           <Dashboard products={products} />
 
-          <div
-            className="
-          mt-8
-          grid
-          grid-cols-1
-          items-start
-          gap-8
-          2xl:grid-cols-[380px_minmax(0,1fr)]
-        "
+          <div className="mt-8 grid grid-cols-1 items-start gap-8 2xl:grid-cols-[380px_minmax(0,1fr)]"
           >
             <div ref={formRef}>
-            <ProductForm
-              key={editingProduct?.id ?? "new"}
-              addProduct={addProduct}
-              editingProduct={editingProduct}
-              updateProduct={updateProduct}
-              setEditingProduct={setEditingProduct}
-            />
+              <ProductForm
+                key={editingProduct?.id ?? "new"}
+                addProduct={addProduct}
+                editingProduct={editingProduct}
+                updateProduct={updateProduct}
+                setEditingProduct={setEditingProduct}
+              />
             </div>
 
             <ProductList
