@@ -1,5 +1,5 @@
 import Toast from "./components/Toast";
-import { useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Sidebar from "./components/Sidebar";
 import Header from "./components/Header";
 import Dashboard from "./components/Dashboard";
@@ -18,10 +18,11 @@ function App() {
 
     return [];
   });
+  
 
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-
+  const formRef = useRef<HTMLDivElement>(null);
   const [toastMessage, setToastMessage] = useState("");
+const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     localStorage.setItem("products", JSON.stringify(products));
@@ -49,6 +50,7 @@ function App() {
     setEditingProduct(product);
   }
 
+
   function updateProduct(updatedProduct: Product) {
     const updatedProducts = products.map((product) =>
       product.id === updatedProduct.id ? updatedProduct : product,
@@ -61,12 +63,25 @@ function App() {
     setToastMessage(`"${updatedProduct.name}" foi atualizado com sucesso!`);
   }
 
+  function scrollToForm() {
+    formRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+
+    setTimeout(() => {
+      const nameInput = document.getElementById("name");
+
+      nameInput?.focus();
+    }, 500);
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 lg:flex">
       {toastMessage && (
         <Toast message={toastMessage} onClose={() => setToastMessage("")} />
       )}
-      <Sidebar />
+      <Sidebar onNewProduct={scrollToForm} />
 
       <div className="min-w-0 flex-1">
         <Header />
@@ -84,6 +99,7 @@ function App() {
           2xl:grid-cols-[380px_minmax(0,1fr)]
         "
           >
+            <div ref={formRef}>
             <ProductForm
               key={editingProduct?.id ?? "new"}
               addProduct={addProduct}
@@ -91,6 +107,7 @@ function App() {
               updateProduct={updateProduct}
               setEditingProduct={setEditingProduct}
             />
+            </div>
 
             <ProductList
               products={products}

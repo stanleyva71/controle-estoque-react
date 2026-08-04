@@ -9,7 +9,11 @@ import {
   User,
 } from "lucide-react";
 
-function Sidebar() {
+interface SidebarProps {
+  onNewProduct: () => void;
+}
+
+function Sidebar({ onNewProduct }: SidebarProps) {
   return (
     <aside
   className="
@@ -35,7 +39,7 @@ function Sidebar() {
         </div>
 
         <h1 className="text-2xl font-bold">
-          Estoque Fácil
+          Estoque
         </h1>
       </div>
 
@@ -52,7 +56,7 @@ function Sidebar() {
           Produtos
         </button>
 
-        <button className="flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left text-slate-300 transition hover:bg-slate-800 hover:text-white">
+        <button onClick={onNewProduct} className="flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left text-slate-300 transition hover:bg-slate-800 hover:text-white">
           <Plus size={22} />
           Novo Produto
         </button>
