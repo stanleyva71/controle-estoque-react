@@ -309,6 +309,7 @@ function ProductForm({
             transition
             hover:bg-blue-700
             hover:shadow-md
+            active:scale-[0.98]
           "
         >
           <Save size={20} />
@@ -339,6 +340,7 @@ function ProductForm({
               text-red-600
               transition
               hover:bg-red-100
+              active:scale-[0.98]
             "
           >
             <X size={19} />
@@ -365,6 +367,7 @@ function ProductForm({
               text-white
               transition
               hover:bg-slate-900
+              active:scale-[0.98]
             "
           >
             <RotateCcw size={19} />

@@ -4,7 +4,7 @@ function Header() {
   return (
     <header className="flex h-24 items-center justify-between border-b border-slate-200 bg-white px-8">
       <div>
-        <h2 className="text-3xl font-bold text-slate-800">
+        <h2 className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">
           Dashboard
         </h2>
 
