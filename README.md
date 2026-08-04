@@ -1,4 +1,5 @@
 # 📦 Sistema de Controle de Estoque
+<img width="1920" height="1080" alt="sistema" src="https://github.com/user-attachments/assets/aa547735-69ad-42fe-a3f1-f23aaac7de02" />
 
 Aplicação web desenvolvida para gerenciamento de produtos em estoque, permitindo cadastrar, editar, excluir, pesquisar e organizar produtos através de uma interface moderna e responsiva.
 
