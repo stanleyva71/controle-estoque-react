@@ -74,6 +74,39 @@ function App() {
     }, 500);
   }
 
+  async function analyzeStock() {
+  try {
+    const response = await fetch(
+      "http://localhost:3001/api/analisar-estoque",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          products,
+        }),
+      },
+    );
+
+    console.log("Status da API:", response.status);
+
+    const data = await response.json();
+
+    console.log("Resposta da API:", data);
+
+    if (!response.ok) {
+      throw new Error(data.error || "Erro na API");
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error("Erro ao analisar estoque:", error.message);
+    } else {
+      console.error("Erro desconhecido:", error);
+    }
+  }
+}
+
   return (
     <div className="min-h-screen bg-slate-100 lg:flex">
       {toastMessage && (
@@ -87,8 +120,11 @@ function App() {
         <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
           <Dashboard products={products} />
 
-          <div className="mt-8 grid grid-cols-1 items-start gap-8 2xl:grid-cols-[380px_minmax(0,1fr)]"
-          >
+          <button type="button" onClick={analyzeStock} className="mt-6 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700">
+            🤖 Analisar estoque
+          </button>
+
+          <div className="mt-8 grid grid-cols-1 items-start gap-8 2xl:grid-cols-[380px_minmax(0,1fr)]">
             <div ref={formRef}>
               <ProductForm
                 key={editingProduct?.id ?? "new"}
