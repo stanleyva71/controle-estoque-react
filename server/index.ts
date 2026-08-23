@@ -1,25 +1,19 @@
 import express from "express";
 import cors from "cors";
-import dotenv from "dotenv";
-import OpenAI from "openai";
-
-dotenv.config();
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
+// Teste da API
 app.get("/api/test", (req, res) => {
   res.json({
     message: "API funcionando!",
   });
 });
 
+// Análise de estoque com Ollama
 app.post("/api/analisar-estoque", async (req, res) => {
   try {
     const { products } = req.body;
@@ -30,9 +24,7 @@ app.post("/api/analisar-estoque", async (req, res) => {
       });
     }
 
-    const response = await openai.responses.create({
-      model: "gpt-5-mini",
-      input: `
+    const prompt = `
 Você é um assistente especializado em gestão de estoque.
 
 Analise os produtos abaixo:
@@ -40,6 +32,7 @@ Analise os produtos abaixo:
 ${JSON.stringify(products, null, 2)}
 
 Identifique:
+
 - produtos com estoque baixo;
 - produtos que precisam de reposição;
 - produtos com maior quantidade;
@@ -47,17 +40,44 @@ Identifique:
 - recomendações para o gestor.
 
 Responda em português do Brasil.
-      `,
+Seja objetivo e organize a resposta de forma clara.
+`;
+
+    const response = await fetch("http://localhost:11434/api/generate", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "qwen2.5:3b",
+        prompt,
+        stream: false,
+      }),
     });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+
+      console.error("ERRO DO OLLAMA:", errorText);
+
+      return res.status(500).json({
+        error: "Erro ao se comunicar com o Ollama.",
+      });
+    }
+
+    const data = await response.json();
 
     res.json({
-      analysis: response.output_text,
+      analysis: data.response,
     });
   } catch (error) {
-    console.error("ERRO COMPLETO DA OPENAI:", error);
+    console.error("ERRO COMPLETO DO OLLAMA:", error);
 
     return res.status(500).json({
-      error: error instanceof Error ? error.message : String(error),
+      error:
+        error instanceof Error
+          ? error.message
+          : String(error),
     });
   }
 });
