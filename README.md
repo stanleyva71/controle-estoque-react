@@ -71,11 +71,27 @@ Projeto desenvolvido com foco em prática de desenvolvimento **Front-end, integr
 * Quantidade de categorias
 * Valor total do estoque
 
-### 🤖 Análise de estoque com IA
+### 🤖 Inteligência Artificial
 
-O sistema possui uma funcionalidade de análise de estoque utilizando **Ollama**.
+O sistema possui integração com **Inteligência Artificial utilizando Ollama**, permitindo analisar os dados de estoque e interagir com os produtos cadastrados através de um chat.
 
-O fluxo funciona da seguinte forma:
+<img width="1238" height="548" alt="Screenshot_10" src="https://github.com/user-attachments/assets/468a4da0-1efc-4f20-bc7e-c6de78c02534" />
+<img width="1361" height="1013" alt="Untitleda" src="https://github.com/user-attachments/assets/0a7f4ea9-1ea0-443a-82e4-95bc31b458f3" />
+
+A IA é executada **localmente**, utilizando o Ollama como mecanismo para execução do modelo de linguagem, evitando a dependência de APIs externas de IA pagas.
+
+#### 📊 Análise automática de estoque
+
+A aplicação envia os produtos cadastrados para a API Express, que realiza a comunicação com o Ollama e retorna uma análise do estoque.
+
+A análise permite identificar informações como:
+
+* Produtos com estoque baixo
+* Produtos que precisam de reposição
+* Situação geral do estoque
+* Recomendações baseadas nos produtos cadastrados
+
+Fluxo da análise:
 
 ```text
 React
@@ -90,6 +106,57 @@ Análise do estoque
   ↓
 React
 ```
+
+#### 💬 Chat com Inteligência Artificial
+
+Além da análise automática, o sistema possui um **chat integrado com IA**, permitindo que o usuário faça perguntas relacionadas aos produtos e ao estoque.
+
+O chat utiliza os dados dos produtos cadastrados como contexto para responder às perguntas do usuário.
+
+Exemplos de perguntas:
+
+```text
+"Quais produtos estão com estoque baixo?"
+
+"Quais produtos precisam de reposição?"
+
+"Qual produto possui maior estoque?"
+
+"Quantos produtos estão cadastrados?"
+```
+
+A comunicação segue o fluxo:
+
+```text
+Usuário
+  ↓
+Chat do React
+  ↓
+API Express
+  ↓
+Ollama
+  ↓
+Modelo de IA
+  ↓
+Resposta
+  ↓
+Chat
+```
+
+Dessa forma, a IA não funciona apenas como uma análise estática, mas também como uma **interface de consulta aos dados do estoque**, permitindo que o usuário obtenha informações através de linguagem natural.
+
+#### 🧠 IA local
+
+A utilização do **Ollama** permite executar o modelo de linguagem no próprio ambiente do usuário.
+
+Isso proporciona:
+
+* Execução local da IA
+* Não dependência de APIs externas pagas
+* Maior controle sobre os dados enviados ao modelo
+* Possibilidade de utilizar diferentes modelos compatíveis com o Ollama
+
+> A funcionalidade de Inteligência Artificial depende do Ollama estar instalado, em execução e configurado com um modelo compatível. As demais funcionalidades do sistema continuam disponíveis mesmo sem a IA.
 
 A aplicação envia os produtos cadastrados para a API, que realiza a comunicação com o Ollama e retorna a análise para o Dashboard.
 
@@ -147,8 +214,6 @@ Exemplo de requisição:
 ## 🧠 Inteligência Artificial com Ollama
 
 O projeto utiliza o **Ollama** para executar o modelo de Inteligência Artificial localmente.
-
-<img width="1243" height="1064" alt="Untitled" src="https://github.com/user-attachments/assets/80394f58-5c7e-4e82-addb-dcfca36351cb" />
 
 Dessa forma, a análise de estoque é realizada através de uma IA executada no próprio ambiente de desenvolvimento, sem depender diretamente de uma API externa de IA paga.
 
@@ -232,7 +297,7 @@ npm run dev
 Em outro terminal, execute o servidor da API:
 
 ```bash
-npm run dev
+npm run server
 ```
 
 ou o comando utilizado pelo servidor Express.
@@ -241,6 +306,7 @@ A API deve estar disponível em:
 
 ```text
 http://localhost:3001
+http://localhost:5173
 ```
 
 ### 6. Inicie o Ollama
@@ -293,5 +359,3 @@ Estudante de Gestão da Tecnologia da Informação, com foco em desenvolvimento 
 **LinkedIn:**
 [www.linkedin.com/in/stanleyvale](http://www.linkedin.com/in/stanleyvale)
 
-**GitHub:**
-https://github.com/SEU_USUARIO
