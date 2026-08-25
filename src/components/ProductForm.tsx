@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { PackagePlus, Save, RotateCcw, X } from "lucide-react";
-
+import { addStockMovement } from "../utils/stockMovements";
 import type { Product } from "../types/Product";
 
 interface ProductFormProps {
@@ -84,9 +84,49 @@ function ProductForm({
     };
 
     if (editingProduct) {
+      const previousQuantity = editingProduct.quantity;
+      const newQuantity = product.quantity;
+
       updateProduct(product);
+
+      if (newQuantity !== previousQuantity) {
+        const difference = newQuantity - previousQuantity;
+
+        addStockMovement({
+          productId: product.id,
+          productName: product.name,
+          type: difference > 0 ? "entrada" : "saida",
+          quantity: Math.abs(difference),
+          previousQuantity,
+          newQuantity,
+          description:
+            difference > 0
+              ? `Entrada de ${Math.abs(difference)} unidade(s)`
+              : `Saída de ${Math.abs(difference)} unidade(s)`,
+        });
+      } else {
+        addStockMovement({
+          productId: product.id,
+          productName: product.name,
+          type: "atualizacao",
+          quantity: 0,
+          previousQuantity,
+          newQuantity,
+          description: "Informações do produto atualizadas",
+        });
+      }
     } else {
       addProduct(product);
+
+      addStockMovement({
+        productId: product.id,
+        productName: product.name,
+        type: "criacao",
+        quantity: product.quantity,
+        previousQuantity: 0,
+        newQuantity: product.quantity,
+        description: "Produto adicionado ao estoque",
+      });
     }
 
     clearForm();
