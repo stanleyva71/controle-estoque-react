@@ -289,7 +289,7 @@ npm install
 ### 4. Execute o Front-end
 
 ```bash
-npm run dev
+npm run dev (http://localhost:5173)
 ```
 
 ### 5. Execute o Back-end
@@ -297,7 +297,7 @@ npm run dev
 Em outro terminal, execute o servidor da API:
 
 ```bash
-npm run server
+npm run server (http://localhost:3001)
 ```
 
 ou o comando utilizado pelo servidor Express.
@@ -306,14 +306,18 @@ A API deve estar disponível em:
 
 ```text
 http://localhost:3001
-http://localhost:5173
 ```
+
 
 ### 6. Inicie o Ollama
 
 Certifique-se de que o **Ollama esteja instalado e em execução** na máquina.
 
 O modelo utilizado pelo projeto também precisa estar disponível localmente.
+Dê run no modelo a IA do Ollama
+```
+ollama run qwen2.5:3b
+```
 
 ---
 
