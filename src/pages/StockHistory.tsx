@@ -327,7 +327,7 @@ function StockHistory() {
           </div>
 
           {/* Resumo */}
-          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
                 Registros
@@ -375,6 +375,16 @@ function StockHistory() {
 
               <p className="mt-1 text-2xl font-bold text-amber-700">
                 {totalUpdates}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                Remoções
+              </p>
+
+              <p className="mt-1 text-2xl font-bold text-slate-700">
+                {totalRemovals}
               </p>
             </div>
           </div>
