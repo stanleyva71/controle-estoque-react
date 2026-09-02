@@ -87,13 +87,16 @@ function App() {
       )}
 
       <Sidebar
+        onDashboard={() => setCurrentPage('dashboard')}
+        onProducts={() => setCurrentPage('dashboard')}
         onNewProduct={() => {
           setCurrentPage('dashboard');
-
+          
           setTimeout(scrollToForm, 0);
         }}
+        onCategories={() => setCurrentPage('dashboard')}
         onHistory={() => setCurrentPage('history')}
-      />
+        />
 
       <div className="min-w-0 flex-1">
         <Header />
