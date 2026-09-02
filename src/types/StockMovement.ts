@@ -13,5 +13,6 @@ export interface StockMovement {
   quantity: number;
   previousQuantity: number;
   newQuantity: number;
+  description: string;
   date: string;
 }
