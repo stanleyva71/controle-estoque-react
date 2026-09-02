@@ -1,6 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 
 import {
+  exportMovementsToCSV,
+  exportMovementsToPDF,
+} from '../utils/exportHistory';
+
+import {
   ArrowDownToLine,
   ArrowUpFromLine,
   CirclePlus,
@@ -10,6 +15,8 @@ import {
   PackageOpen,
   Filter,
   RotateCcw,
+  Download,
+  FileText,
 } from 'lucide-react';
 
 import type { MovementType, StockMovement } from '../types/StockMovement';
@@ -167,19 +174,43 @@ function StockHistory() {
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       {/* Cabeçalho */}
-      <div className="mb-6 flex items-center gap-3">
-        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
-          <History size={23} />
+      <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
+            <History size={23} />
+          </div>
+
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">
+              Histórico de Movimentações
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Acompanhe todas as alterações realizadas no estoque.
+            </p>
+          </div>
         </div>
 
-        <div>
-          <h2 className="text-xl font-bold text-slate-800">
-            Histórico de Movimentações
-          </h2>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => exportMovementsToCSV(filteredMovements)}
+            disabled={filteredMovements.length === 0}
+            className="flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Download size={18} />
+            Exportar CSV
+          </button>
 
-          <p className="mt-1 text-sm text-slate-500">
-            Acompanhe todas as alterações realizadas no estoque.
-          </p>
+          <button
+            type="button"
+            onClick={() => exportMovementsToPDF(filteredMovements)}
+            disabled={filteredMovements.length === 0}
+            className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <FileText size={18} />
+            Exportar PDF
+          </button>
         </div>
       </div>
 
