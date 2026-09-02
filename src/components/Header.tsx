@@ -1,4 +1,4 @@
-import { Bell } from "lucide-react";
+import { Bell } from 'lucide-react';
 
 function Header() {
   return (

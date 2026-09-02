@@ -1,7 +1,7 @@
-import { useState } from "react";
-import { PackagePlus, Save, RotateCcw, X } from "lucide-react";
-import { addStockMovement } from "../utils/stockMovements";
-import type { Product } from "../types/Product";
+import { useState } from 'react';
+import { PackagePlus, Save, RotateCcw, X } from 'lucide-react';
+import { addStockMovement } from '../utils/stockMovements';
+import type { Product } from '../types/Product';
 
 interface ProductFormProps {
   addProduct: (product: Product) => void;
@@ -19,31 +19,31 @@ function ProductForm({
   updateProduct,
   setEditingProduct,
 }: ProductFormProps) {
-  const [name, setName] = useState(editingProduct ? editingProduct.name : "");
+  const [name, setName] = useState(editingProduct ? editingProduct.name : '');
 
   const [category, setCategory] = useState(
-    editingProduct ? editingProduct.category : "",
+    editingProduct ? editingProduct.category : ''
   );
 
   const [quantity, setQuantity] = useState(
-    editingProduct ? editingProduct.quantity : 0,
+    editingProduct ? editingProduct.quantity : 0
   );
 
   const [price, setPrice] = useState(editingProduct ? editingProduct.price : 0);
 
   const [image, setImage] = useState(
-    editingProduct ? (editingProduct.image ?? "") : "",
+    editingProduct ? (editingProduct.image ?? '') : ''
   );
 
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
 
   function clearForm() {
-    setName("");
-    setCategory("");
+    setName('');
+    setCategory('');
     setQuantity(0);
     setPrice(0);
-    setImage("");
-    setError("");
+    setImage('');
+    setError('');
 
     setEditingProduct(null);
   }
@@ -51,27 +51,27 @@ function ProductForm({
   function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
-    if (name.trim() === "") {
-      setError("Digite o nome do produto.");
+    if (name.trim() === '') {
+      setError('Digite o nome do produto.');
       return;
     }
 
-    if (category.trim() === "") {
-      setError("Digite a categoria do produto.");
+    if (category.trim() === '') {
+      setError('Digite a categoria do produto.');
       return;
     }
 
     if (quantity < 0) {
-      setError("A quantidade não pode ser negativa.");
+      setError('A quantidade não pode ser negativa.');
       return;
     }
 
     if (price < 0) {
-      setError("O preço não pode ser negativo.");
+      setError('O preço não pode ser negativo.');
       return;
     }
 
-    setError("");
+    setError('');
 
     const product: Product = {
       id: editingProduct ? editingProduct.id : Date.now(),
@@ -95,7 +95,7 @@ function ProductForm({
         addStockMovement({
           productId: product.id,
           productName: product.name,
-          type: difference > 0 ? "entrada" : "saida",
+          type: difference > 0 ? 'entrada' : 'saida',
           quantity: Math.abs(difference),
           previousQuantity,
           newQuantity,
@@ -108,11 +108,11 @@ function ProductForm({
         addStockMovement({
           productId: product.id,
           productName: product.name,
-          type: "atualizacao",
+          type: 'atualizacao',
           quantity: 0,
           previousQuantity,
           newQuantity,
-          description: "Informações do produto atualizadas",
+          description: 'Informações do produto atualizadas',
         });
       }
     } else {
@@ -121,11 +121,11 @@ function ProductForm({
       addStockMovement({
         productId: product.id,
         productName: product.name,
-        type: "criacao",
+        type: 'criacao',
         quantity: product.quantity,
         previousQuantity: 0,
         newQuantity: product.quantity,
-        description: "Produto adicionado ao estoque",
+        description: 'Produto adicionado ao estoque',
       });
     }
 
@@ -142,13 +142,13 @@ function ProductForm({
 
         <div>
           <h2 className="text-xl font-bold text-slate-800">
-            {editingProduct ? "Editar Produto" : "Adicionar Produto"}
+            {editingProduct ? 'Editar Produto' : 'Adicionar Produto'}
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
             {editingProduct
-              ? "Atualize as informações do produto"
-              : "Preencha os dados para cadastrar"}
+              ? 'Atualize as informações do produto'
+              : 'Preencha os dados para cadastrar'}
           </p>
         </div>
       </div>
@@ -343,7 +343,7 @@ function ProductForm({
         >
           <Save size={20} />
 
-          {editingProduct ? "Salvar alterações" : "Adicionar produto"}
+          {editingProduct ? 'Salvar alterações' : 'Adicionar produto'}
         </button>
 
         {/* Cancelar edição */}

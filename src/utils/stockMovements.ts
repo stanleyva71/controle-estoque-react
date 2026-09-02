@@ -1,25 +1,28 @@
-import type { StockMovement } from "../types/StockMovement";
+import type { StockMovement, MovementType } from "../types/StockMovement";
 
 const STORAGE_KEY = "stockMovements";
 
 export function getStockMovements(): StockMovement[] {
-  const data = localStorage.getItem(STORAGE_KEY);
+  const stored = localStorage.getItem(STORAGE_KEY);
 
-  if (!data) {
+  if (!stored) {
     return [];
   }
 
   try {
-    return JSON.parse(data);
-  } catch (error) {
-    console.error("Erro ao carregar histórico:", error);
+    return JSON.parse(stored);
+  } catch {
     return [];
   }
 }
 
+export function saveStockMovements(movements: StockMovement[]) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(movements));
+}
+
 export function addStockMovement(
   movement: Omit<StockMovement, "id" | "date">
-): void {
+) {
   const movements = getStockMovements();
 
   const newMovement: StockMovement = {
@@ -28,10 +31,5 @@ export function addStockMovement(
     date: new Date().toISOString(),
   };
 
-  movements.unshift(newMovement);
-
-  localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(movements)
-  );
+  saveStockMovements([newMovement, ...movements]);
 }

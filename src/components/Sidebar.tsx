@@ -7,7 +7,7 @@ import {
   FileText,
   Settings,
   User,
-} from "lucide-react";
+} from 'lucide-react';
 
 interface SidebarProps {
   onNewProduct: () => void;

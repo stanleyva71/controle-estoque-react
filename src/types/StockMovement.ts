@@ -1,9 +1,9 @@
 export type MovementType =
-  | "entrada"
-  | "saida"
-  | "criacao"
-  | "atualizacao"
-  | "remocao";
+  | 'entrada'
+  | 'saida'
+  | 'criacao'
+  | 'atualizacao'
+  | 'remocao';
 
 export interface StockMovement {
   id: string;
@@ -14,5 +14,4 @@ export interface StockMovement {
   previousQuantity: number;
   newQuantity: number;
   date: string;
-  description: string;
 }

@@ -1,8 +1,4 @@
-import {
-  AlertTriangle,
-  Trash2,
-  X,
-} from "lucide-react";
+import { AlertTriangle, Trash2, X } from 'lucide-react';
 
 interface DeleteModalProps {
   productName: string;
@@ -10,11 +6,7 @@ interface DeleteModalProps {
   onCancel: () => void;
 }
 
-function DeleteModal({
-  productName,
-  onConfirm,
-  onCancel,
-}: DeleteModalProps) {
+function DeleteModal({ productName, onConfirm, onCancel }: DeleteModalProps) {
   return (
     <div
       className="
@@ -78,12 +70,10 @@ function DeleteModal({
 
         {/* Texto */}
         <div className="mt-5 text-center">
-          <h2 className="text-xl font-bold text-slate-900">
-            Excluir produto?
-          </h2>
+          <h2 className="text-xl font-bold text-slate-900">Excluir produto?</h2>
 
           <p className="mt-3 text-sm leading-6 text-slate-500">
-            Você tem certeza que deseja excluir{" "}
+            Você tem certeza que deseja excluir{' '}
             <span className="font-semibold text-slate-700">
               "{productName}"
             </span>

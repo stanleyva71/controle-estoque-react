@@ -7,86 +7,83 @@ import {
   Loader2,
   Send,
   User,
-} from "lucide-react";
+} from 'lucide-react';
 
-import { useState } from "react";
-import type { Product } from "../types/Product";
+import { useState } from 'react';
+import type { Product } from '../types/Product';
 
 interface DashboardProps {
   products: Product[];
 }
 
 interface ChatMessage {
-  role: "user" | "assistant";
+  role: 'user' | 'assistant';
   content: string;
 }
 
 function Dashboard({ products }: DashboardProps) {
-  const [analysis, setAnalysis] = useState("");
+  const [analysis, setAnalysis] = useState('');
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
-  const [analysisError, setAnalysisError] = useState("");
+  const [analysisError, setAnalysisError] = useState('');
 
-  const [question, setQuestion] = useState("");
+  const [question, setQuestion] = useState('');
   const [loadingChat, setLoadingChat] = useState(false);
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      role: "assistant",
+      role: 'assistant',
       content:
-        "Olá! 👋 Sou o assistente de estoque. Você pode me perguntar sobre seus produtos, estoque baixo, reposições, categorias ou qualquer outra informação relacionada ao seu estoque.",
+        'Olá! 👋 Sou o assistente de estoque. Você pode me perguntar sobre seus produtos, estoque baixo, reposições, categorias ou qualquer outra informação relacionada ao seu estoque.',
     },
   ]);
 
   const totalProducts = products.length;
 
-  const lowStockProducts = products.filter(
-    (product) => product.quantity <= 5,
-  );
+  const lowStockProducts = products.filter((product) => product.quantity <= 5);
 
   const lowStockCount = lowStockProducts.length;
 
-  const totalCategories = new Set(
-    products.map((product) => product.category),
-  ).size;
+  const totalCategories = new Set(products.map((product) => product.category))
+    .size;
 
   const totalStockValue = products.reduce(
     (total, product) => total + product.quantity * product.price,
-    0,
+    0
   );
 
   async function analyzeStock() {
     try {
       setLoadingAnalysis(true);
-      setAnalysis("");
-      setAnalysisError("");
+      setAnalysis('');
+      setAnalysisError('');
 
       const response = await fetch(
-        "http://localhost:3001/api/analisar-estoque",
+        'http://localhost:3001/api/analisar-estoque',
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             products,
           }),
-        },
+        }
       );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Erro ao analisar estoque.");
+        throw new Error(data.error || 'Erro ao analisar estoque.');
       }
 
       setAnalysis(data.analysis);
     } catch (error) {
-      console.error("Erro ao analisar estoque:", error);
+      console.error('Erro ao analisar estoque:', error);
 
       setAnalysisError(
         error instanceof Error
           ? error.message
-          : "Não foi possível analisar o estoque.",
+          : 'Não foi possível analisar o estoque.'
       );
     } finally {
       setLoadingAnalysis(false);
@@ -101,50 +98,47 @@ function Dashboard({ products }: DashboardProps) {
     }
 
     const userMessage: ChatMessage = {
-      role: "user",
+      role: 'user',
       content: trimmedQuestion,
     };
 
     setMessages((prev) => [...prev, userMessage]);
-    setQuestion("");
+    setQuestion('');
     setLoadingChat(true);
 
     try {
-      const response = await fetch(
-        "http://localhost:3001/api/chat-estoque",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            products,
-            question: trimmedQuestion,
-          }),
+      const response = await fetch('http://localhost:3001/api/chat-estoque', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      );
+        body: JSON.stringify({
+          products,
+          question: trimmedQuestion,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || "Erro ao enviar pergunta.");
+        throw new Error(data.error || 'Erro ao enviar pergunta.');
       }
 
       const assistantMessage: ChatMessage = {
-        role: "assistant",
+        role: 'assistant',
         content: data.answer,
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error("Erro no chat:", error);
+      console.error('Erro no chat:', error);
 
       const errorMessage: ChatMessage = {
-        role: "assistant",
+        role: 'assistant',
         content:
           error instanceof Error
             ? `Não foi possível responder: ${error.message}`
-            : "Não foi possível responder à pergunta.",
+            : 'Não foi possível responder à pergunta.',
       };
 
       setMessages((prev) => [...prev, errorMessage]);
@@ -154,7 +148,7 @@ function Dashboard({ products }: DashboardProps) {
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
-    if (event.key === "Enter") {
+    if (event.key === 'Enter') {
       sendQuestion();
     }
   }
@@ -176,9 +170,7 @@ function Dashboard({ products }: DashboardProps) {
               {totalProducts}
             </p>
 
-            <p className="mt-1 text-sm text-slate-400">
-              Produtos cadastrados
-            </p>
+            <p className="mt-1 text-sm text-slate-400">Produtos cadastrados</p>
           </div>
         </div>
 
@@ -188,9 +180,7 @@ function Dashboard({ products }: DashboardProps) {
           </div>
 
           <div>
-            <p className="text-sm font-medium text-slate-500">
-              Estoque Baixo
-            </p>
+            <p className="text-sm font-medium text-slate-500">Estoque Baixo</p>
 
             <p className="mt-1 text-3xl font-bold text-slate-800">
               {lowStockCount}
@@ -208,9 +198,7 @@ function Dashboard({ products }: DashboardProps) {
           </div>
 
           <div>
-            <p className="text-sm font-medium text-slate-500">
-              Categorias
-            </p>
+            <p className="text-sm font-medium text-slate-500">Categorias</p>
 
             <p className="mt-1 text-3xl font-bold text-slate-800">
               {totalCategories}
@@ -233,9 +221,9 @@ function Dashboard({ products }: DashboardProps) {
             </p>
 
             <p className="mt-1 text-2xl font-bold text-slate-800">
-              {totalStockValue.toLocaleString("pt-BR", {
-                style: "currency",
-                currency: "BRL",
+              {totalStockValue.toLocaleString('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
               })}
             </p>
 
@@ -256,8 +244,7 @@ function Dashboard({ products }: DashboardProps) {
         </div>
 
         <p className="mt-1 text-sm text-slate-500">
-          Faça perguntas sobre os produtos cadastrados e receba respostas da
-          IA.
+          Faça perguntas sobre os produtos cadastrados e receba respostas da IA.
         </p>
 
         <div className="mt-5 h-[420px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4">
@@ -266,20 +253,18 @@ function Dashboard({ products }: DashboardProps) {
               <div
                 key={`${message.role}-${index}`}
                 className={`flex ${
-                  message.role === "user"
-                    ? "justify-end"
-                    : "justify-start"
+                  message.role === 'user' ? 'justify-end' : 'justify-start'
                 }`}
               >
                 <div
                   className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                    message.role === "user"
-                      ? "bg-blue-600 text-white"
-                      : "border border-slate-200 bg-white text-slate-700"
+                    message.role === 'user'
+                      ? 'bg-blue-600 text-white'
+                      : 'border border-slate-200 bg-white text-slate-700'
                   }`}
                 >
                   <div className="mb-1 flex items-center gap-2 text-xs font-semibold">
-                    {message.role === "user" ? (
+                    {message.role === 'user' ? (
                       <>
                         <User size={14} />
                         Você
@@ -337,7 +322,6 @@ function Dashboard({ products }: DashboardProps) {
               ) : (
                 <Send size={20} />
               )}
-
               Enviar
             </button>
           </div>
@@ -371,9 +355,7 @@ function Dashboard({ products }: DashboardProps) {
 
         {analysis && (
           <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-5">
-            <h3 className="mb-3 font-bold text-blue-900">
-              Análise automática
-            </h3>
+            <h3 className="mb-3 font-bold text-blue-900">Análise automática</h3>
 
             <div className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
               {analysis}

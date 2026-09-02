@@ -1,5 +1,6 @@
-import { useState } from "react";
-import DeleteModal from "./DeleteModal";
+import { useState } from 'react';
+import DeleteModal from './DeleteModal';
+import { addStockMovement } from '../utils/stockMovements';
 
 import {
   Search,
@@ -9,9 +10,9 @@ import {
   Pencil,
   Trash2,
   PackageSearch,
-} from "lucide-react";
+} from 'lucide-react';
 
-import type { Product } from "../types/Product";
+import type { Product } from '../types/Product';
 
 interface ProductListProps {
   products: Product[];
@@ -26,11 +27,11 @@ function ProductList({
   deleteProduct,
   editProduct,
 }: ProductListProps) {
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState('');
 
-  const [selectedCategory, setSelectedCategory] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState('');
 
-  const [sortOption, setSortOption] = useState("name");
+  const [sortOption, setSortOption] = useState('name');
 
   const [showLowStock, setShowLowStock] = useState(false);
 
@@ -46,7 +47,7 @@ function ProductList({
       product.category.toLowerCase().includes(searchText);
 
     const matchesCategory =
-      selectedCategory === "" || product.category === selectedCategory;
+      selectedCategory === '' || product.category === selectedCategory;
 
     const matchesLowStock = !showLowStock || product.quantity <= 5;
 
@@ -54,23 +55,23 @@ function ProductList({
   });
 
   const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortOption === "name") {
+    if (sortOption === 'name') {
       return a.name.localeCompare(b.name);
     }
 
-    if (sortOption === "quantity-low") {
+    if (sortOption === 'quantity-low') {
       return a.quantity - b.quantity;
     }
 
-    if (sortOption === "quantity-high") {
+    if (sortOption === 'quantity-high') {
       return b.quantity - a.quantity;
     }
 
-    if (sortOption === "price-low") {
+    if (sortOption === 'price-low') {
       return a.price - b.price;
     }
 
-    if (sortOption === "price-high") {
+    if (sortOption === 'price-high') {
       return b.price - a.price;
     }
 
@@ -87,10 +88,10 @@ function ProductList({
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
-            {products.length}{" "}
+            {products.length}{' '}
             {products.length === 1
-              ? "produto cadastrado"
-              : "produtos cadastrados"}
+              ? 'produto cadastrado'
+              : 'produtos cadastrados'}
           </p>
         </div>
 
@@ -227,7 +228,8 @@ function ProductList({
           onChange={(event) => {
             setShowLowStock(event.target.checked);
           }}
-          className="h-5 w-5 cursor-pointer accent-blue-600"/>
+          className="h-5 w-5 cursor-pointer accent-blue-600"
+        />
 
         <AlertTriangle size={20} className="text-amber-500" />
 
@@ -245,14 +247,14 @@ function ProductList({
 
           <h3 className="text-lg font-bold text-slate-700">
             {products.length === 0
-              ? "Nenhum produto cadastrado"
-              : "Nenhum produto encontrado"}
+              ? 'Nenhum produto cadastrado'
+              : 'Nenhum produto encontrado'}
           </h3>
 
           <p className="mt-2 max-w-sm text-sm text-slate-500">
             {products.length === 0
-              ? "Cadastre seu primeiro produto usando o formulário ao lado."
-              : "Tente alterar a busca ou os filtros selecionados."}
+              ? 'Cadastre seu primeiro produto usando o formulário ao lado.'
+              : 'Tente alterar a busca ou os filtros selecionados.'}
           </p>
         </div>
       ) : (
@@ -331,8 +333,8 @@ function ProductList({
                       <span
                         className={
                           lowStock
-                            ? "font-bold text-red-600"
-                            : "font-semibold text-green-600"
+                            ? 'font-bold text-red-600'
+                            : 'font-semibold text-green-600'
                         }
                       >
                         {product.quantity}
@@ -340,9 +342,9 @@ function ProductList({
                     </td>
 
                     <td className="px-5 py-4 font-semibold text-slate-700">
-                      {new Intl.NumberFormat("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
+                      {new Intl.NumberFormat('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
                       }).format(product.price)}
                     </td>
 
@@ -410,6 +412,16 @@ function ProductList({
             setProductToDelete(null);
           }}
           onConfirm={() => {
+            addStockMovement({
+              productId: productToDelete.id,
+              productName: productToDelete.name,
+              type: 'remocao',
+              quantity: productToDelete.quantity,
+              previousQuantity: productToDelete.quantity,
+              newQuantity: 0,
+              description: 'Produto removido do estoque',
+            });
+
             deleteProduct(productToDelete.id);
 
             setProductToDelete(null);
