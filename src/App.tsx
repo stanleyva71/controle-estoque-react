@@ -30,39 +30,27 @@ function App() {
 
   const [toastMessage, setToastMessage] = useState('');
 
-  const [editingProduct, setEditingProduct] =
-    useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   useEffect(() => {
-    localStorage.setItem(
-      'products',
-      JSON.stringify(products)
-    );
+    localStorage.setItem('products', JSON.stringify(products));
   }, [products]);
 
   function addProduct(product: Product) {
     setProducts([...products, product]);
 
-    setToastMessage(
-      `"${product.name}" foi adicionado com sucesso!`
-    );
+    setToastMessage(`"${product.name}" foi adicionado com sucesso!`);
   }
 
   function deleteProduct(id: number) {
-    const productToDelete = products.find(
-      (product) => product.id === id
-    );
+    const productToDelete = products.find((product) => product.id === id);
 
-    const newProducts = products.filter(
-      (product) => product.id !== id
-    );
+    const newProducts = products.filter((product) => product.id !== id);
 
     setProducts(newProducts);
 
     if (productToDelete) {
-      setToastMessage(
-        `"${productToDelete.name}" foi excluído com sucesso!`
-      );
+      setToastMessage(`"${productToDelete.name}" foi excluído com sucesso!`);
     }
   }
 
@@ -72,17 +60,13 @@ function App() {
 
   function updateProduct(updatedProduct: Product) {
     const updatedProducts = products.map((product) =>
-      product.id === updatedProduct.id
-        ? updatedProduct
-        : product
+      product.id === updatedProduct.id ? updatedProduct : product
     );
 
     setProducts(updatedProducts);
     setEditingProduct(null);
 
-    setToastMessage(
-      `"${updatedProduct.name}" foi atualizado com sucesso!`
-    );
+    setToastMessage(`"${updatedProduct.name}" foi atualizado com sucesso!`);
   }
 
   function scrollToForm() {
@@ -101,34 +85,19 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-100 lg:flex">
       {toastMessage && (
-        <Toast
-          message={toastMessage}
-          onClose={() => setToastMessage('')}
-        />
+        <Toast message={toastMessage} onClose={() => setToastMessage('')} />
       )}
 
       <Sidebar
-        onDashboard={() =>
-          setCurrentPage('dashboard')
-        }
-
-        onProducts={() =>
-          setCurrentPage('dashboard')
-        }
-
+        onDashboard={() => setCurrentPage('dashboard')}
+        onProducts={() => setCurrentPage('dashboard')}
         onNewProduct={() => {
           setCurrentPage('dashboard');
 
           setTimeout(scrollToForm, 0);
         }}
-
-        onCategories={() =>
-          setCurrentPage('categories')
-        }
-
-        onHistory={() =>
-          setCurrentPage('history')
-        }
+        onCategories={() => setCurrentPage('categories')}
+        onHistory={() => setCurrentPage('history')}
       />
 
       <div className="min-w-0 flex-1">
@@ -160,7 +129,7 @@ function App() {
           ) : currentPage === 'history' ? (
             <StockHistory />
           ) : (
-            <Categories products={products} />
+            <Categories products={products} updateProducts={setProducts} />
           )}
         </main>
       </div>

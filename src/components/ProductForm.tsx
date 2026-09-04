@@ -1,7 +1,18 @@
-import { useState } from 'react';
-import { PackagePlus, Save, RotateCcw, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+import {
+  PackagePlus,
+  Save,
+  RotateCcw,
+  X,
+} from 'lucide-react';
+
 import { addStockMovement } from '../utils/stockMovements';
+
 import type { Product } from '../types/Product';
+import type { Category } from '../types/Category';
+
+import { getCategories } from '../utils/categories';
 
 interface ProductFormProps {
   addProduct: (product: Product) => void;
@@ -19,7 +30,9 @@ function ProductForm({
   updateProduct,
   setEditingProduct,
 }: ProductFormProps) {
-  const [name, setName] = useState(editingProduct ? editingProduct.name : '');
+  const [name, setName] = useState(
+    editingProduct ? editingProduct.name : ''
+  );
 
   const [category, setCategory] = useState(
     editingProduct ? editingProduct.category : ''
@@ -29,13 +42,63 @@ function ProductForm({
     editingProduct ? editingProduct.quantity : 0
   );
 
-  const [price, setPrice] = useState(editingProduct ? editingProduct.price : 0);
+  const [price, setPrice] = useState(
+    editingProduct ? editingProduct.price : 0
+  );
 
   const [image, setImage] = useState(
-    editingProduct ? (editingProduct.image ?? '') : ''
+    editingProduct
+      ? (editingProduct.image ?? '')
+      : ''
   );
 
   const [error, setError] = useState('');
+
+  const [categories, setCategories] = useState<
+    Category[]
+  >([]);
+
+  // Carrega as categorias e acompanha novas alterações
+  useEffect(() => {
+    function loadCategories() {
+      setCategories(getCategories());
+    }
+
+    loadCategories();
+
+    const handleCategoriesUpdated = () => {
+      loadCategories();
+    };
+
+    window.addEventListener(
+      'categoriesUpdated',
+      handleCategoriesUpdated
+    );
+
+    return () => {
+      window.removeEventListener(
+        'categoriesUpdated',
+        handleCategoriesUpdated
+      );
+    };
+  }, []);
+
+  // Mantém a categoria correta ao editar um produto
+  useEffect(() => {
+    if (!editingProduct) {
+      return;
+    }
+
+    const matchingCategory = categories.find(
+      (item) =>
+        item.name.toLowerCase() ===
+        editingProduct.category.toLowerCase()
+    );
+
+    if (matchingCategory) {
+      setCategory(matchingCategory.name);
+    }
+  }, [categories, editingProduct]);
 
   function clearForm() {
     setName('');
@@ -48,7 +111,9 @@ function ProductForm({
     setEditingProduct(null);
   }
 
-  function handleSubmit(event: React.FormEvent) {
+  function handleSubmit(
+    event: React.FormEvent
+  ) {
     event.preventDefault();
 
     if (name.trim() === '') {
@@ -57,24 +122,30 @@ function ProductForm({
     }
 
     if (category.trim() === '') {
-      setError('Digite a categoria do produto.');
+      setError('Selecione uma categoria.');
       return;
     }
 
     if (quantity < 0) {
-      setError('A quantidade não pode ser negativa.');
+      setError(
+        'A quantidade não pode ser negativa.'
+      );
       return;
     }
 
     if (price < 0) {
-      setError('O preço não pode ser negativo.');
+      setError(
+        'O preço não pode ser negativo.'
+      );
       return;
     }
 
     setError('');
 
     const product: Product = {
-      id: editingProduct ? editingProduct.id : Date.now(),
+      id: editingProduct
+        ? editingProduct.id
+        : Date.now(),
 
       name,
       category,
@@ -84,25 +155,35 @@ function ProductForm({
     };
 
     if (editingProduct) {
-      const previousQuantity = editingProduct.quantity;
+      const previousQuantity =
+        editingProduct.quantity;
+
       const newQuantity = product.quantity;
 
       updateProduct(product);
 
       if (newQuantity !== previousQuantity) {
-        const difference = newQuantity - previousQuantity;
+        const difference =
+          newQuantity - previousQuantity;
 
         addStockMovement({
           productId: product.id,
           productName: product.name,
-          type: difference > 0 ? 'entrada' : 'saida',
+          type:
+            difference > 0
+              ? 'entrada'
+              : 'saida',
           quantity: Math.abs(difference),
           previousQuantity,
           newQuantity,
           description:
             difference > 0
-              ? `Entrada de ${Math.abs(difference)} unidade(s)`
-              : `Saída de ${Math.abs(difference)} unidade(s)`,
+              ? `Entrada de ${Math.abs(
+                  difference
+                )} unidade(s)`
+              : `Saída de ${Math.abs(
+                  difference
+                )} unidade(s)`,
         });
       } else {
         addStockMovement({
@@ -112,7 +193,8 @@ function ProductForm({
           quantity: 0,
           previousQuantity,
           newQuantity,
-          description: 'Informações do produto atualizadas',
+          description:
+            'Informações do produto atualizadas',
         });
       }
     } else {
@@ -125,7 +207,8 @@ function ProductForm({
         quantity: product.quantity,
         previousQuantity: 0,
         newQuantity: product.quantity,
-        description: 'Produto adicionado ao estoque',
+        description:
+          'Produto adicionado ao estoque',
       });
     }
 
@@ -142,7 +225,9 @@ function ProductForm({
 
         <div>
           <h2 className="text-xl font-bold text-slate-800">
-            {editingProduct ? 'Editar Produto' : 'Adicionar Produto'}
+            {editingProduct
+              ? 'Editar Produto'
+              : 'Adicionar Produto'}
           </h2>
 
           <p className="mt-1 text-sm text-slate-500">
@@ -153,7 +238,10 @@ function ProductForm({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-5"
+      >
         {/* Mensagem de erro */}
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600">
@@ -175,7 +263,9 @@ function ProductForm({
             type="text"
             placeholder="Cole a URL da imagem"
             value={image}
-            onChange={(event) => setImage(event.target.value)}
+            onChange={(event) =>
+              setImage(event.target.value)
+            }
             className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
           />
         </div>
@@ -194,24 +284,10 @@ function ProductForm({
             type="text"
             placeholder="Ex: Mouse Logitech"
             value={name}
-            onChange={(event) => setName(event.target.value)}
-            className="
-              w-full
-              rounded-xl
-              border
-              border-slate-300
-              bg-slate-50
-              px-4
-              py-3
-              text-slate-800
-              outline-none
-              transition
-              placeholder:text-slate-400
-              focus:border-blue-500
-              focus:bg-white
-              focus:ring-4
-              focus:ring-blue-100
-            "
+            onChange={(event) =>
+              setName(event.target.value)
+            }
+            className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
           />
         </div>
 
@@ -224,30 +300,36 @@ function ProductForm({
             Categoria
           </label>
 
-          <input
+          <select
             id="category"
-            type="text"
-            placeholder="Ex: Periféricos"
             value={category}
-            onChange={(event) => setCategory(event.target.value)}
-            className="
-              w-full
-              rounded-xl
-              border
-              border-slate-300
-              bg-slate-50
-              px-4
-              py-3
-              text-slate-800
-              outline-none
-              transition
-              placeholder:text-slate-400
-              focus:border-blue-500
-              focus:bg-white
-              focus:ring-4
-              focus:ring-blue-100
-            "
-          />
+            onChange={(event) =>
+              setCategory(event.target.value)
+            }
+            disabled={categories.length === 0}
+            className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <option value="">
+              Selecione uma categoria
+            </option>
+
+            {categories.map((categoryItem) => (
+              <option
+                key={categoryItem.id}
+                value={categoryItem.name}
+              >
+                {categoryItem.name}
+              </option>
+            ))}
+          </select>
+
+          {/* Uma única mensagem */}
+          {categories.length === 0 && (
+            <p className="mt-2 text-sm font-medium text-amber-600">
+              Nenhuma categoria cadastrada. Crie uma
+              categoria antes de cadastrar um produto.
+            </p>
+          )}
         </div>
 
         {/* Quantidade */}
@@ -263,24 +345,13 @@ function ProductForm({
             id="quantity"
             type="number"
             value={quantity}
-            onChange={(event) => setQuantity(Number(event.target.value))}
+            onChange={(event) =>
+              setQuantity(
+                Number(event.target.value)
+              )
+            }
             min="0"
-            className="
-              w-full
-              rounded-xl
-              border
-              border-slate-300
-              bg-slate-50
-              px-4
-              py-3
-              text-slate-800
-              outline-none
-              transition
-              focus:border-blue-500
-              focus:bg-white
-              focus:ring-4
-              focus:ring-blue-100
-            "
+            className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
           />
         </div>
 
@@ -297,53 +368,28 @@ function ProductForm({
             id="price"
             type="number"
             value={price}
-            onChange={(event) => setPrice(Number(event.target.value))}
+            onChange={(event) =>
+              setPrice(
+                Number(event.target.value)
+              )
+            }
             min="0"
             step="0.01"
-            className="
-              w-full
-              rounded-xl
-              border
-              border-slate-300
-              bg-slate-50
-              px-4
-              py-3
-              text-slate-800
-              outline-none
-              transition
-              focus:border-blue-500
-              focus:bg-white
-              focus:ring-4
-              focus:ring-blue-100
-            "
+            className="w-full rounded-xl border border-slate-300 bg-slate-50 px-4 py-3 text-slate-800 outline-none transition focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
           />
         </div>
 
         {/* Botão principal */}
         <button
           type="submit"
-          className="
-            flex
-            w-full
-            items-center
-            justify-center
-            gap-2
-            rounded-xl
-            bg-blue-600
-            px-5
-            py-3.5
-            font-semibold
-            text-white
-            shadow-sm
-            transition
-            hover:bg-blue-700
-            hover:shadow-md
-            active:scale-[0.98]
-          "
+          disabled={categories.length === 0}
+          className="flex w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3.5 font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
         >
           <Save size={20} />
 
-          {editingProduct ? 'Salvar alterações' : 'Adicionar produto'}
+          {editingProduct
+            ? 'Salvar alterações'
+            : 'Adicionar produto'}
         </button>
 
         {/* Cancelar edição */}
@@ -351,24 +397,7 @@ function ProductForm({
           <button
             type="button"
             onClick={clearForm}
-            className="
-              flex
-              w-full
-              items-center
-              justify-center
-              gap-2
-              rounded-xl
-              border
-              border-red-200
-              bg-red-50
-              px-5
-              py-3
-              font-semibold
-              text-red-600
-              transition
-              hover:bg-red-100
-              active:scale-[0.98]
-            "
+            className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-5 py-3 font-semibold text-red-600 transition hover:bg-red-100 active:scale-[0.98]"
           >
             <X size={19} />
             Cancelar edição
@@ -380,22 +409,7 @@ function ProductForm({
           <button
             type="button"
             onClick={clearForm}
-            className="
-              flex
-              w-full
-              items-center
-              justify-center
-              gap-2
-              rounded-xl
-              bg-slate-800
-              px-5
-              py-3
-              font-semibold
-              text-white
-              transition
-              hover:bg-slate-900
-              active:scale-[0.98]
-            "
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-slate-800 px-5 py-3 font-semibold text-white transition hover:bg-slate-900 active:scale-[0.98]"
           >
             <RotateCcw size={19} />
             Limpar campos
