@@ -4,9 +4,9 @@
 
 Aplicação web desenvolvida para gerenciamento de produtos em estoque, permitindo cadastrar, editar, excluir, pesquisar e organizar produtos através de uma interface moderna, responsiva e intuitiva.
 
-O projeto também conta com uma **integração com Inteligência Artificial utilizando Ollama**, permitindo analisar os produtos cadastrados e gerar uma análise do estoque.
+O projeto também conta com gerenciamento de categorias, histórico de movimentações de estoque e integração com Inteligência Artificial utilizando Ollama, permitindo analisar os produtos cadastrados e interagir com os dados do estoque através de um chat.
 
-Projeto desenvolvido com foco em prática de desenvolvimento **Front-end, integração com API e utilização de Inteligência Artificial local**.
+Projeto desenvolvido com foco em prática de desenvolvimento Front-end, integração com API, gerenciamento de dados e utilização de Inteligência Artificial local.
 
 ---
 
@@ -53,6 +53,20 @@ Projeto desenvolvido com foco em prática de desenvolvimento **Front-end, integr
 * Adição de imagem dos produtos
 * Persistência dos dados utilizando LocalStorage
 
+🗂️ Categorias
+
+O sistema possui um módulo completo para gerenciamento de categorias, permitindo organizar os produtos de forma mais eficiente.
+
+* Cadastro de categorias
+* Edição de categorias
+* Exclusão de categorias
+* Busca de categorias
+* Contagem de produtos por categoria
+* Identificação de categorias sem produtos
+* Validação para impedir a exclusão de categorias que possuem produtos associados
+
+O CRUD de categorias permite manter a organização do estoque de forma independente dos produtos cadastrados.
+
 ### 🔎 Busca e organização
 
 * Pesquisa por nome ou categoria
@@ -70,6 +84,32 @@ Projeto desenvolvido com foco em prática de desenvolvimento **Front-end, integr
 * Produtos com estoque baixo
 * Quantidade de categorias
 * Valor total do estoque
+
+📜 Histórico de movimentações
+
+O sistema possui um módulo de Histórico de Movimentações, responsável por registrar as alterações realizadas no estoque.
+
+A funcionalidade permite acompanhar as principais movimentações dos produtos, proporcionando maior controle e rastreabilidade das operações realizadas.
+
+São registrados eventos como:
+
+* Entrada de estoque
+* Saída de estoque
+* Criação de produto
+* Atualização de produto
+* Remoção de produto
+
+Cada movimentação possui informações como:
+
+* Produto movimentado
+* Tipo da movimentação
+* Quantidade anterior
+* Quantidade movimentada
+* Nova quantidade em estoque
+* Data e horário da movimentação
+* Descrição da operação
+
+O histórico permite identificar de forma clara o que aconteceu, com qual produto e quando a alteração foi realizada.
 
 ### 🤖 Inteligência Artificial
 
@@ -246,11 +286,20 @@ controle-estoque/
 │   │   ├── Sidebar.tsx
 │   │   ├── ProductForm.tsx
 │   │   ├── ProductList.tsx
+│   │   ├── Categories.tsx
+│   │   ├── StockHistory.tsx
 │   │   ├── Toast.tsx
 │   │   └── DeleteModal.tsx
 │   │
 │   ├── types/
 │   │   └── Product.ts
+│   │   └── Category.ts
+│   │   └── StockMovement.ts
+│   │
+│   ├── utils/
+│   │   └── categories.ts
+│   │   └── exportHistory.ts.ts
+│   │   └── stockMovements.ts
 │   │
 │   ├── App.tsx
 │   └── main.tsx
@@ -265,6 +314,20 @@ controle-estoque/
 > A estrutura da pasta `server` pode variar de acordo com a organização utilizada no projeto.
 
 ---
+
+💾 Persistência dos dados
+
+Os dados da aplicação são armazenados utilizando LocalStorage, permitindo manter as informações mesmo após o fechamento ou atualização da página.
+
+Atualmente, o sistema utiliza o armazenamento local para:
+
+Produtos
+Categorias
+Histórico de movimentações
+
+---
+
+As movimentações de estoque são registradas automaticamente conforme operações realizadas no sistema.
 
 ## ▶️ Como executar
 
@@ -350,7 +413,7 @@ Sem o Ollama e o modelo configurado, o restante do sistema continuará funcionan
 
 O projeto foi desenvolvido com o objetivo de aplicar na prática conceitos de desenvolvimento web, desde a construção da interface até a criação de uma API e integração com Inteligência Artificial.
 
-Além do gerenciamento tradicional de estoque, a aplicação busca demonstrar como uma aplicação React pode se comunicar com um back-end e utilizar IA para fornecer informações adicionais ao usuário.
+Além do gerenciamento tradicional de estoque, a aplicação busca demonstrar como uma aplicação React pode se comunicar com um back-end, organizar produtos através de categorias, registrar o histórico das operações realizadas e utilizar IA para fornecer informações adicionais ao usuário.
 
 ---
 
