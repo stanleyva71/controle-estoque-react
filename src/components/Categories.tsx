@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+
 import {
   FolderTree,
   Plus,
@@ -15,53 +16,69 @@ import DeleteModal from "./DeleteModal";
 import type { Category } from "../types/Category";
 import type { Product } from "../types/Product";
 
-import {
-  getCategories,
-  addCategory,
-  updateCategory,
-  deleteCategory,
-} from "../utils/categories";
-
 interface CategoriesProps {
   products: Product[];
   updateProducts: (products: Product[]) => void;
 }
 
-function Categories({ products, updateProducts }: CategoriesProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
+const API_URL = "http://localhost:3001/api";
 
+function Categories({
+  products,
+  updateProducts,
+}: CategoriesProps) {
+  const [categories, setCategories] = useState<Category[]>([]);
   const [categoryToDelete, setCategoryToDelete] =
     useState<Category | null>(null);
 
   const [search, setSearch] = useState("");
   const [categoryName, setCategoryName] = useState("");
-
   const [editingCategory, setEditingCategory] =
     useState<Category | null>(null);
 
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  function loadCategories() {
-    setCategories(getCategories());
+  // =========================
+  // Carregar categorias
+  // =========================
+
+  async function loadCategories() {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(`${API_URL}/categories`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Não foi possível carregar as categorias.",
+        );
+      }
+
+      setCategories(data);
+    } catch (error) {
+      console.error("ERRO AO CARREGAR CATEGORIAS:", error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar as categorias.",
+      );
+    } finally {
+      setLoading(false);
+    }
   }
 
   useEffect(() => {
     loadCategories();
-
-    const handleCategoriesUpdated = () => {
-      loadCategories();
-    };
-
-    window.addEventListener("categoriesUpdated", handleCategoriesUpdated);
-
-    return () => {
-      window.removeEventListener(
-        "categoriesUpdated",
-        handleCategoriesUpdated
-      );
-    };
   }, []);
+
+  // =========================
+  // Formulário
+  // =========================
 
   function openCreateForm() {
     setEditingCategory(null);
@@ -84,7 +101,13 @@ function Categories({ products, updateProducts }: CategoriesProps) {
     setShowForm(false);
   }
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  // =========================
+  // Criar / editar
+  // =========================
+
+  async function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
     const trimmedName = categoryName.trim();
@@ -94,118 +117,202 @@ function Categories({ products, updateProducts }: CategoriesProps) {
       return;
     }
 
-    if (editingCategory) {
-      const oldName = editingCategory.name;
+    try {
+      setError("");
 
-      const success = updateCategory(
-        editingCategory.id,
-        trimmedName
-      );
+      if (editingCategory) {
+        const oldName = editingCategory.name;
 
-      if (!success) {
-        setError("Já existe uma categoria com esse nome.");
-        return;
+        const response = await fetch(
+          `${API_URL}/categories/${editingCategory.id}`,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              name: trimmedName,
+            }),
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Não foi possível atualizar a categoria.",
+          );
+        }
+
+        // Sincroniza o estado dos produtos no frontend.
+        const updatedProducts = products.map((product) =>
+          product.category.toLowerCase() ===
+          oldName.toLowerCase()
+            ? {
+                ...product,
+                category: data.name,
+              }
+            : product,
+        );
+
+        updateProducts(updatedProducts);
+
+        setCategories((currentCategories) =>
+          currentCategories.map((category) =>
+            category.id === data.id ? data : category,
+          ),
+        );
+      } else {
+        const response = await fetch(`${API_URL}/categories`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: trimmedName,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              "Não foi possível criar a categoria.",
+          );
+        }
+
+        setCategories((currentCategories) => [
+          ...currentCategories,
+          data,
+        ]);
       }
 
-      const updatedProducts = products.map((product) =>
-        product.category.toLowerCase() === oldName.toLowerCase()
-          ? {
-              ...product,
-              category: trimmedName,
-            }
-          : product
+      closeForm();
+    } catch (error) {
+      console.error("ERRO AO SALVAR CATEGORIA:", error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar a categoria.",
       );
-
-      updateProducts(updatedProducts);
-    } else {
-      const success = addCategory(trimmedName);
-
-      if (!success) {
-        setError("Já existe uma categoria com esse nome.");
-        return;
-      }
     }
-
-    loadCategories();
-    closeForm();
   }
 
-  /*
-   * Abre o modal para qualquer categoria.
-   * A verificação de produtos é feita somente
-   * quando o usuário confirmar a exclusão.
-   */
+  // =========================
+  // Exclusão
+  // =========================
+
   function handleDelete(category: Category) {
     setError("");
     setCategoryToDelete(category);
   }
 
-  /*
-   * Confirma a exclusão da categoria.
-   */
-  function confirmDelete() {
+  async function confirmDelete() {
     if (!categoryToDelete) {
       return;
     }
 
-    const productsUsingCategory = products.filter(
-      (product) =>
-        product.category.toLowerCase() ===
-        categoryToDelete.name.toLowerCase()
-    );
+    try {
+      setError("");
 
-    /*
-     * Se existirem produtos associados,
-     * não permite a exclusão.
-     */
-    if (productsUsingCategory.length > 0) {
-      setError(
-        `Não é possível excluir "${categoryToDelete.name}" porque existem ${productsUsingCategory.length} produto(s) associados a essa categoria.`
+      const response = await fetch(
+        `${API_URL}/categories/${categoryToDelete.id}`,
+        {
+          method: "DELETE",
+        },
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error ||
+            "Não foi possível excluir a categoria.",
+        );
+      }
+
+      setCategories((currentCategories) =>
+        currentCategories.filter(
+          (category) => category.id !== categoryToDelete.id,
+        ),
       );
 
       setCategoryToDelete(null);
-      return;
+    } catch (error) {
+      console.error("ERRO AO EXCLUIR CATEGORIA:", error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Não foi possível excluir a categoria.",
+      );
+
+      setCategoryToDelete(null);
     }
-
-    /*
-     * Se não houver produtos associados,
-     * exclui normalmente.
-     */
-    deleteCategory(categoryToDelete.id);
-
-    setCategoryToDelete(null);
-    setError("");
-
-    loadCategories();
   }
 
+  // =========================
+  // Filtro
+  // =========================
+
   const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(search.toLowerCase())
+    category.name
+      .toLowerCase()
+      .includes(search.toLowerCase()),
   );
 
   function getProductCount(categoryName: string) {
     return products.filter(
       (product) =>
         product.category.toLowerCase() ===
-        categoryName.toLowerCase()
+        categoryName.toLowerCase(),
     ).length;
+  }
+
+  const categoriesWithoutProducts = categories.filter(
+    (category) => getProductCount(category.name) === 0,
+  ).length;
+
+  // =========================
+  // Loading
+  // =========================
+
+  if (loading) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+            <FolderTree size={30} />
+          </div>
+
+          <h3 className="text-lg font-bold text-slate-700">
+            Carregando categorias...
+          </h3>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Buscando categorias no banco de dados.
+          </p>
+        </div>
+      </section>
+    );
   }
 
   return (
     <>
-      {/* Modal de exclusão */}
       {categoryToDelete && (
         <DeleteModal
           productName={categoryToDelete.name}
-          onCancel={() => {
-            setCategoryToDelete(null);
-          }}
+          onCancel={() => setCategoryToDelete(null)}
           onConfirm={confirmDelete}
         />
       )}
 
       <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         {/* Cabeçalho */}
+
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
@@ -233,7 +340,27 @@ function Categories({ products, updateProducts }: CategoriesProps) {
           </button>
         </div>
 
+        {/* Erro */}
+
+        {error && !showForm && (
+          <div className="mb-5 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-sm font-medium text-red-600">
+              {error}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => setError("")}
+              className="ml-4 text-red-500 transition hover:text-red-700"
+              aria-label="Fechar mensagem"
+            >
+              <X size={18} />
+            </button>
+          </div>
+        )}
+
         {/* Resumo */}
+
         <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
@@ -261,17 +388,13 @@ function Categories({ products, updateProducts }: CategoriesProps) {
             </p>
 
             <p className="mt-1 text-2xl font-bold text-slate-700">
-              {
-                categories.filter(
-                  (category) =>
-                    getProductCount(category.name) === 0
-                ).length
-              }
+              {categoriesWithoutProducts}
             </p>
           </div>
         </div>
 
         {/* Busca */}
+
         <div className="relative mb-5">
           <Search
             size={19}
@@ -287,25 +410,8 @@ function Categories({ products, updateProducts }: CategoriesProps) {
           />
         </div>
 
-        {/* Mensagem de erro */}
-        {error && !showForm && (
-          <div className="mb-5 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-            <p className="text-sm font-medium text-red-600">
-              {error}
-            </p>
-
-            <button
-              type="button"
-              onClick={() => setError("")}
-              className="ml-4 text-red-500 transition hover:text-red-700"
-              aria-label="Fechar mensagem"
-            >
-              <X size={18} />
-            </button>
-          </div>
-        )}
-
         {/* Formulário */}
+
         {showForm && (
           <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-5">
             <div className="mb-4 flex items-center justify-between">
@@ -351,7 +457,6 @@ function Categories({ products, updateProducts }: CategoriesProps) {
                 className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
               >
                 <Save size={18} />
-
                 {editingCategory ? "Salvar" : "Criar"}
               </button>
 
@@ -373,6 +478,7 @@ function Categories({ products, updateProducts }: CategoriesProps) {
         )}
 
         {/* Lista */}
+
         {filteredCategories.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600">
@@ -418,7 +524,7 @@ function Categories({ products, updateProducts }: CategoriesProps) {
                 <tbody>
                   {filteredCategories.map((category) => {
                     const productCount = getProductCount(
-                      category.name
+                      category.name,
                     );
 
                     return (
@@ -449,7 +555,7 @@ function Categories({ products, updateProducts }: CategoriesProps) {
                           {new Intl.DateTimeFormat("pt-BR", {
                             dateStyle: "short",
                           }).format(
-                            new Date(category.createdAt)
+                            new Date(category.createdAt),
                           )}
                         </td>
 

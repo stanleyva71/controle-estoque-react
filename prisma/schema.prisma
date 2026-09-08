@@ -14,8 +14,6 @@ model Product {
   price    Decimal @db.Decimal(10, 2)
   image    String?
 
-  movements StockMovement[]
-
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -31,8 +29,12 @@ model StockMovement {
   description      String
   date             DateTime @default(now())
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-
   @@index([productId])
   @@index([date])
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
 }

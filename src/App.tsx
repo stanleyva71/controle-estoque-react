@@ -10,82 +10,190 @@ import Categories from './components/Categories';
 
 import type { Product } from './types/Product';
 
+const API_URL = 'http://localhost:3001/api';
+
 function App() {
-  const [products, setProducts] = useState<Product[]>(() => {
-    const savedProducts = localStorage.getItem('products');
-
-    if (savedProducts) {
-      return JSON.parse(savedProducts);
-    }
-
-    return [];
-  });
-
+  const [products, setProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState<
     'dashboard' | 'products' | 'history' | 'categories'
   >('dashboard');
 
   const [toastMessage, setToastMessage] = useState('');
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [focusProductForm, setFocusProductForm] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const [editingProduct, setEditingProduct] =
-    useState<Product | null>(null);
-
-  const [focusProductForm, setFocusProductForm] =
-    useState(false);
+  // =========================
+  // Carregar produtos do banco
+  // =========================
 
   useEffect(() => {
-    localStorage.setItem(
-      'products',
-      JSON.stringify(products)
-    );
-  }, [products]);
+    async function loadProducts() {
+      try {
+        const response = await fetch(`${API_URL}/products`);
 
-  function addProduct(product: Product) {
-    setProducts([...products, product]);
+        if (!response.ok) {
+          throw new Error('Não foi possível carregar os produtos.');
+        }
 
-    setToastMessage(
-      `"${product.name}" foi adicionado com sucesso!`
-    );
-  }
+        const data: Product[] = await response.json();
 
-  function deleteProduct(id: number) {
-    const productToDelete = products.find(
-      (product) => product.id === id
-    );
+        setProducts(data);
+      } catch (error) {
+        console.error('ERRO AO CARREGAR PRODUTOS:', error);
 
-    const newProducts = products.filter(
-      (product) => product.id !== id
-    );
+        setToastMessage(
+          'Não foi possível carregar os produtos do banco de dados.',
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
 
-    setProducts(newProducts);
+    loadProducts();
+  }, []);
 
-    if (productToDelete) {
+  // =========================
+  // Criar produto
+  // =========================
+
+  async function addProduct(product: Product) {
+    try {
+      const response = await fetch(`${API_URL}/products`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: product.name,
+          category: product.category,
+          quantity: product.quantity,
+          price: product.price,
+          image: product.image,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Não foi possível criar o produto.');
+      }
+
+      setProducts((currentProducts) => [
+        data,
+        ...currentProducts,
+      ]);
+
+      setToastMessage(`"${data.name}" foi adicionado com sucesso!`);
+    } catch (error) {
+      console.error('ERRO AO CRIAR PRODUTO:', error);
+
       setToastMessage(
-        `"${productToDelete.name}" foi excluído com sucesso!`
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível criar o produto.',
       );
     }
   }
 
+  // =========================
+  // Excluir produto
+  // =========================
+
+  async function deleteProduct(id: number) {
+    const productToDelete = products.find(
+      (product) => product.id === id,
+    );
+
+    try {
+      const response = await fetch(`${API_URL}/products/${id}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Não foi possível excluir o produto.');
+      }
+
+      setProducts((currentProducts) =>
+        currentProducts.filter((product) => product.id !== id),
+      );
+
+      if (productToDelete) {
+        setToastMessage(
+          `"${productToDelete.name}" foi excluído com sucesso!`,
+        );
+      }
+    } catch (error) {
+      console.error('ERRO AO EXCLUIR PRODUTO:', error);
+
+      setToastMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível excluir o produto.',
+      );
+    }
+  }
+
+  // =========================
+  // Editar produto
+  // =========================
+
   function editProduct(product: Product) {
     setEditingProduct(product);
-
     setCurrentPage('products');
     setFocusProductForm(true);
   }
 
-  function updateProduct(updatedProduct: Product) {
-    const updatedProducts = products.map((product) =>
-      product.id === updatedProduct.id
-        ? updatedProduct
-        : product
-    );
+  // =========================
+  // Atualizar produto
+  // =========================
 
-    setProducts(updatedProducts);
-    setEditingProduct(null);
+  async function updateProduct(updatedProduct: Product) {
+    try {
+      const response = await fetch(
+        `${API_URL}/products/${updatedProduct.id}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: updatedProduct.name,
+            category: updatedProduct.category,
+            quantity: updatedProduct.quantity,
+            price: updatedProduct.price,
+            image: updatedProduct.image,
+          }),
+        },
+      );
 
-    setToastMessage(
-      `"${updatedProduct.name}" foi atualizado com sucesso!`
-    );
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || 'Não foi possível atualizar o produto.',
+        );
+      }
+
+      setProducts((currentProducts) =>
+        currentProducts.map((product) =>
+          product.id === data.id ? data : product,
+        ),
+      );
+
+      setEditingProduct(null);
+      setToastMessage(`"${data.name}" foi atualizado com sucesso!`);
+    } catch (error) {
+      console.error('ERRO AO ATUALIZAR PRODUTO:', error);
+
+      setToastMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível atualizar o produto.',
+      );
+    }
   }
 
   return (
@@ -103,23 +211,19 @@ function App() {
           setEditingProduct(null);
           setCurrentPage('dashboard');
         }}
-
         onProducts={() => {
           setFocusProductForm(false);
           setCurrentPage('products');
         }}
-
         onNewProduct={() => {
           setEditingProduct(null);
           setFocusProductForm(true);
           setCurrentPage('products');
         }}
-
         onCategories={() => {
           setFocusProductForm(false);
           setCurrentPage('categories');
         }}
-
         onHistory={() => {
           setFocusProductForm(false);
           setCurrentPage('history');
@@ -130,32 +234,40 @@ function App() {
         <Header />
 
         <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
-          {currentPage === 'dashboard' && (
-            <Dashboard products={products} />
-          )}
+          {loading ? (
+            <div className="flex min-h-[300px] items-center justify-center">
+              <p className="text-sm text-slate-500">
+                Carregando produtos...
+              </p>
+            </div>
+          ) : (
+            <>
+              {currentPage === 'dashboard' && (
+                <Dashboard products={products} />
+              )}
 
-          {currentPage === 'products' && (
-            <Products
-              products={products}
-              addProduct={addProduct}
-              editingProduct={editingProduct}
-              updateProduct={updateProduct}
-              setEditingProduct={setEditingProduct}
-              deleteProduct={deleteProduct}
-              editProduct={editProduct}
-              shouldFocusForm={focusProductForm}
-            />
-          )}
+              {currentPage === 'products' && (
+                <Products
+                  products={products}
+                  addProduct={addProduct}
+                  editingProduct={editingProduct}
+                  updateProduct={updateProduct}
+                  setEditingProduct={setEditingProduct}
+                  deleteProduct={deleteProduct}
+                  editProduct={editProduct}
+                  shouldFocusForm={focusProductForm}
+                />
+              )}
 
-          {currentPage === 'history' && (
-            <StockHistory />
-          )}
+              {currentPage === 'history' && <StockHistory />}
 
-          {currentPage === 'categories' && (
-            <Categories
-              products={products}
-              updateProducts={setProducts}
-            />
+              {currentPage === 'categories' && (
+                <Categories
+                  products={products}
+                  updateProducts={setProducts}
+                />
+              )}
+            </>
           )}
         </main>
       </div>

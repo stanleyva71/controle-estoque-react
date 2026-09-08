@@ -7,20 +7,13 @@ import {
   X,
 } from 'lucide-react';
 
-import { addStockMovement } from '../utils/stockMovements';
-
 import type { Product } from '../types/Product';
 import type { Category } from '../types/Category';
 
-import { getCategories } from '../utils/categories';
-
 interface ProductFormProps {
   addProduct: (product: Product) => void;
-
   editingProduct: Product | null;
-
   updateProduct: (product: Product) => void;
-
   setEditingProduct: (product: Product | null) => void;
 }
 
@@ -48,42 +41,52 @@ function ProductForm({
 
   const [image, setImage] = useState(
     editingProduct
-      ? (editingProduct.image ?? '')
+      ? editingProduct.image ?? ''
       : ''
   );
 
   const [error, setError] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]);
 
-  const [categories, setCategories] = useState<
-    Category[]
-  >([]);
+  // =========================
+  // Carregar categorias da API
+  // =========================
 
-  // Carrega as categorias e acompanha novas alterações
   useEffect(() => {
-    function loadCategories() {
-      setCategories(getCategories());
+    async function loadCategories() {
+      try {
+        const response = await fetch(
+          'http://localhost:3001/api/categories'
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error ||
+              'Não foi possível carregar as categorias.'
+          );
+        }
+
+        setCategories(data);
+      } catch (error) {
+        console.error(
+          'ERRO AO CARREGAR CATEGORIAS:',
+          error
+        );
+
+        setCategories([]);
+      }
     }
 
     loadCategories();
-
-    const handleCategoriesUpdated = () => {
-      loadCategories();
-    };
-
-    window.addEventListener(
-      'categoriesUpdated',
-      handleCategoriesUpdated
-    );
-
-    return () => {
-      window.removeEventListener(
-        'categoriesUpdated',
-        handleCategoriesUpdated
-      );
-    };
   }, []);
 
-  // Mantém a categoria correta ao editar um produto
+  // =========================
+  // Mantém a categoria correta
+  // ao editar um produto
+  // =========================
+
   useEffect(() => {
     if (!editingProduct) {
       return;
@@ -100,6 +103,10 @@ function ProductForm({
     }
   }, [categories, editingProduct]);
 
+  // =========================
+  // Limpar formulário
+  // =========================
+
   function clearForm() {
     setName('');
     setCategory('');
@@ -107,13 +114,14 @@ function ProductForm({
     setPrice(0);
     setImage('');
     setError('');
-
     setEditingProduct(null);
   }
 
-  function handleSubmit(
-    event: React.FormEvent
-  ) {
+  // =========================
+  // Enviar formulário
+  // =========================
+
+  function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
     if (name.trim() === '') {
@@ -127,27 +135,20 @@ function ProductForm({
     }
 
     if (quantity < 0) {
-      setError(
-        'A quantidade não pode ser negativa.'
-      );
+      setError('A quantidade não pode ser negativa.');
       return;
     }
 
     if (price < 0) {
-      setError(
-        'O preço não pode ser negativo.'
-      );
+      setError('O preço não pode ser negativo.');
       return;
     }
 
     setError('');
 
     const product: Product = {
-      id: editingProduct
-        ? editingProduct.id
-        : Date.now(),
-
-      name,
+      id: editingProduct ? editingProduct.id : 0,
+      name: name.trim(),
       category,
       quantity,
       price,
@@ -155,61 +156,9 @@ function ProductForm({
     };
 
     if (editingProduct) {
-      const previousQuantity =
-        editingProduct.quantity;
-
-      const newQuantity = product.quantity;
-
       updateProduct(product);
-
-      if (newQuantity !== previousQuantity) {
-        const difference =
-          newQuantity - previousQuantity;
-
-        addStockMovement({
-          productId: product.id,
-          productName: product.name,
-          type:
-            difference > 0
-              ? 'entrada'
-              : 'saida',
-          quantity: Math.abs(difference),
-          previousQuantity,
-          newQuantity,
-          description:
-            difference > 0
-              ? `Entrada de ${Math.abs(
-                  difference
-                )} unidade(s)`
-              : `Saída de ${Math.abs(
-                  difference
-                )} unidade(s)`,
-        });
-      } else {
-        addStockMovement({
-          productId: product.id,
-          productName: product.name,
-          type: 'atualizacao',
-          quantity: 0,
-          previousQuantity,
-          newQuantity,
-          description:
-            'Informações do produto atualizadas',
-        });
-      }
     } else {
       addProduct(product);
-
-      addStockMovement({
-        productId: product.id,
-        productName: product.name,
-        type: 'criacao',
-        quantity: product.quantity,
-        previousQuantity: 0,
-        newQuantity: product.quantity,
-        description:
-          'Produto adicionado ao estoque',
-      });
     }
 
     clearForm();
@@ -218,6 +167,7 @@ function ProductForm({
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       {/* Cabeçalho */}
+
       <div className="mb-6 flex items-center gap-3">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
           <PackagePlus size={23} />
@@ -243,6 +193,7 @@ function ProductForm({
         className="space-y-5"
       >
         {/* Mensagem de erro */}
+
         {error && (
           <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-600">
             {error}
@@ -250,6 +201,7 @@ function ProductForm({
         )}
 
         {/* Imagem */}
+
         <div>
           <label
             htmlFor="image"
@@ -271,6 +223,7 @@ function ProductForm({
         </div>
 
         {/* Nome */}
+
         <div>
           <label
             htmlFor="name"
@@ -292,6 +245,7 @@ function ProductForm({
         </div>
 
         {/* Categoria */}
+
         <div>
           <label
             htmlFor="category"
@@ -323,7 +277,6 @@ function ProductForm({
             ))}
           </select>
 
-          {/* Uma única mensagem */}
           {categories.length === 0 && (
             <p className="mt-2 text-sm font-medium text-amber-600">
               Nenhuma categoria cadastrada. Crie uma
@@ -333,6 +286,7 @@ function ProductForm({
         </div>
 
         {/* Quantidade */}
+
         <div>
           <label
             htmlFor="quantity"
@@ -356,6 +310,7 @@ function ProductForm({
         </div>
 
         {/* Preço */}
+
         <div>
           <label
             htmlFor="price"
@@ -380,6 +335,7 @@ function ProductForm({
         </div>
 
         {/* Botão principal */}
+
         <button
           type="submit"
           disabled={categories.length === 0}
@@ -393,6 +349,7 @@ function ProductForm({
         </button>
 
         {/* Cancelar edição */}
+
         {editingProduct && (
           <button
             type="button"
@@ -405,6 +362,7 @@ function ProductForm({
         )}
 
         {/* Limpar */}
+
         {!editingProduct && (
           <button
             type="button"

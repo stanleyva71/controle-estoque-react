@@ -19,46 +19,71 @@ import {
   FileText,
 } from 'lucide-react';
 
-import type { MovementType, StockMovement } from '../types/StockMovement';
+import type {
+  MovementType,
+  StockMovement,
+} from '../types/StockMovement';
 
-import { getStockMovements } from '../utils/stockMovements';
+const API_URL = 'http://localhost:3001/api';
 
 function StockHistory() {
   const [movements, setMovements] = useState<StockMovement[]>([]);
-
-  const [selectedType, setSelectedType] = useState<MovementType | 'todos'>(
-    'todos'
-  );
+  const [selectedType, setSelectedType] = useState<
+    MovementType | 'todos'
+  >('todos');
 
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
 
-  function loadMovements() {
-    const storedMovements = getStockMovements();
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-    const sortedMovements = [...storedMovements].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-
-    setMovements(sortedMovements);
-  }
+  // =========================
+  // Carregar histórico da API
+  // =========================
 
   useEffect(() => {
+    async function loadMovements() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const response = await fetch(`${API_URL}/movements`);
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || 'Não foi possível carregar o histórico.',
+          );
+        }
+
+        const sortedMovements = [...data].sort(
+          (a: StockMovement, b: StockMovement) =>
+            new Date(b.date).getTime() -
+            new Date(a.date).getTime(),
+        );
+
+        setMovements(sortedMovements);
+      } catch (error) {
+        console.error('ERRO AO CARREGAR HISTÓRICO:', error);
+
+        setError(
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível carregar o histórico.',
+        );
+      } finally {
+        setLoading(false);
+      }
+    }
+
     loadMovements();
-
-    const handleMovementsUpdated = () => {
-      loadMovements();
-    };
-
-    window.addEventListener('stockMovementsUpdated', handleMovementsUpdated);
-
-    return () => {
-      window.removeEventListener(
-        'stockMovementsUpdated',
-        handleMovementsUpdated
-      );
-    };
   }, []);
+
+  // =========================
+  // Configuração dos movimentos
+  // =========================
 
   function getMovementConfig(type: MovementType) {
     switch (type) {
@@ -66,45 +91,55 @@ function StockHistory() {
         return {
           label: 'Entrada',
           icon: ArrowDownToLine,
-          className: 'bg-green-100 text-green-700 border-green-200',
+          className:
+            'bg-green-100 text-green-700 border-green-200',
         };
 
       case 'saida':
         return {
           label: 'Saída',
           icon: ArrowUpFromLine,
-          className: 'bg-red-100 text-red-700 border-red-200',
+          className:
+            'bg-red-100 text-red-700 border-red-200',
         };
 
       case 'criacao':
         return {
           label: 'Criação',
           icon: CirclePlus,
-          className: 'bg-blue-100 text-blue-700 border-blue-200',
+          className:
+            'bg-blue-100 text-blue-700 border-blue-200',
         };
 
       case 'atualizacao':
         return {
           label: 'Atualização',
           icon: Pencil,
-          className: 'bg-amber-100 text-amber-700 border-amber-200',
+          className:
+            'bg-amber-100 text-amber-700 border-amber-200',
         };
 
       case 'remocao':
         return {
           label: 'Remoção',
           icon: Trash2,
-          className: 'bg-slate-100 text-slate-700 border-slate-200',
+          className:
+            'bg-slate-100 text-slate-700 border-slate-200',
         };
 
       default:
         return {
           label: 'Desconhecido',
           icon: History,
-          className: 'bg-slate-100 text-slate-700 border-slate-200',
+          className:
+            'bg-slate-100 text-slate-700 border-slate-200',
         };
     }
   }
+
+  // =========================
+  // Formatar data
+  // =========================
 
   function formatDate(date: string) {
     return new Intl.DateTimeFormat('pt-BR', {
@@ -113,8 +148,15 @@ function StockHistory() {
     }).format(new Date(date));
   }
 
+  // =========================
+  // Quantidade exibida
+  // =========================
+
   function getQuantityLabel(movement: StockMovement) {
-    if (movement.type === 'entrada' || movement.type === 'criacao') {
+    if (
+      movement.type === 'entrada' ||
+      movement.type === 'criacao'
+    ) {
       return `+${movement.quantity}`;
     }
 
@@ -125,22 +167,42 @@ function StockHistory() {
     return '—';
   }
 
+  // =========================
+  // Filtros
+  // =========================
+
   const filteredMovements = useMemo(() => {
     return movements.filter((movement) => {
       const movementDate = new Date(movement.date);
 
       const matchesType =
-        selectedType === 'todos' || movement.type === selectedType;
+        selectedType === 'todos' ||
+        movement.type === selectedType;
 
       const matchesStartDate =
-        startDate === '' || movementDate >= new Date(`${startDate}T00:00:00`);
+        startDate === '' ||
+        movementDate >= new Date(`${startDate}T00:00:00`);
 
       const matchesEndDate =
-        endDate === '' || movementDate <= new Date(`${endDate}T23:59:59`);
+        endDate === '' ||
+        movementDate <= new Date(`${endDate}T23:59:59`);
 
-      return matchesType && matchesStartDate && matchesEndDate;
+      return (
+        matchesType &&
+        matchesStartDate &&
+        matchesEndDate
+      );
     });
-  }, [movements, selectedType, startDate, endDate]);
+  }, [
+    movements,
+    selectedType,
+    startDate,
+    endDate,
+  ]);
+
+  // =========================
+  // Limpar filtros
+  // =========================
 
   function clearFilters() {
     setSelectedType('todos');
@@ -148,32 +210,87 @@ function StockHistory() {
     setEndDate('');
   }
 
+  // =========================
+  // Resumo
+  // =========================
+
   const totalEntries = filteredMovements.filter(
-    (movement) => movement.type === 'entrada'
+    (movement) => movement.type === 'entrada',
   ).length;
 
   const totalExits = filteredMovements.filter(
-    (movement) => movement.type === 'saida'
+    (movement) => movement.type === 'saida',
   ).length;
 
   const totalCreations = filteredMovements.filter(
-    (movement) => movement.type === 'criacao'
+    (movement) => movement.type === 'criacao',
   ).length;
 
   const totalUpdates = filteredMovements.filter(
-    (movement) => movement.type === 'atualizacao'
+    (movement) => movement.type === 'atualizacao',
   ).length;
 
   const totalRemovals = filteredMovements.filter(
-    (movement) => movement.type === 'remocao'
+    (movement) => movement.type === 'remocao',
   ).length;
 
   const hasActiveFilters =
-    selectedType !== 'todos' || startDate !== '' || endDate !== '';
+    selectedType !== 'todos' ||
+    startDate !== '' ||
+    endDate !== '';
+
+  // =========================
+  // Loading
+  // =========================
+
+  if (loading) {
+    return (
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600">
+            <History size={30} />
+          </div>
+
+          <h3 className="text-lg font-bold text-slate-700">
+            Carregando histórico...
+          </h3>
+
+          <p className="mt-2 text-sm text-slate-500">
+            Buscando as movimentações no banco de dados.
+          </p>
+        </div>
+      </section>
+    );
+  }
+
+  // =========================
+  // Erro
+  // =========================
+
+  if (error) {
+    return (
+      <section className="rounded-2xl border border-red-200 bg-white p-6 shadow-sm">
+        <div className="flex min-h-[400px] flex-col items-center justify-center text-center">
+          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100 text-red-600">
+            <History size={30} />
+          </div>
+
+          <h3 className="text-lg font-bold text-slate-700">
+            Não foi possível carregar o histórico
+          </h3>
+
+          <p className="mt-2 max-w-md text-sm text-red-500">
+            {error}
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       {/* Cabeçalho */}
+
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
@@ -194,7 +311,9 @@ function StockHistory() {
         <div className="flex flex-col gap-2 sm:flex-row">
           <button
             type="button"
-            onClick={() => exportMovementsToCSV(filteredMovements)}
+            onClick={() =>
+              exportMovementsToCSV(filteredMovements)
+            }
             disabled={filteredMovements.length === 0}
             className="flex items-center justify-center gap-2 rounded-xl border border-green-200 bg-green-50 px-4 py-2.5 text-sm font-semibold text-green-700 transition hover:bg-green-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -204,7 +323,9 @@ function StockHistory() {
 
           <button
             type="button"
-            onClick={() => exportMovementsToPDF(filteredMovements)}
+            onClick={() =>
+              exportMovementsToPDF(filteredMovements)
+            }
             disabled={filteredMovements.length === 0}
             className="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
           >
@@ -215,6 +336,7 @@ function StockHistory() {
       </div>
 
       {/* Estado sem movimentações */}
+
       {movements.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600">
@@ -226,22 +348,26 @@ function StockHistory() {
           </h3>
 
           <p className="mt-2 max-w-sm text-sm text-slate-500">
-            As movimentações de entrada, saída, criação, atualização e remoção
-            aparecerão aqui.
+            As movimentações de entrada, saída, criação,
+            atualização e remoção aparecerão aqui.
           </p>
         </div>
       ) : (
         <>
           {/* Filtros */}
+
           <div className="mb-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
             <div className="mb-4 flex items-center gap-2">
               <Filter size={19} className="text-blue-600" />
 
-              <h3 className="font-bold text-slate-700">Filtros</h3>
+              <h3 className="font-bold text-slate-700">
+                Filtros
+              </h3>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
               {/* Tipo */}
+
               <div>
                 <label
                   htmlFor="movement-type"
@@ -255,26 +381,41 @@ function StockHistory() {
                   value={selectedType}
                   onChange={(event) =>
                     setSelectedType(
-                      event.target.value as MovementType | 'todos'
+                      event.target.value as
+                        | MovementType
+                        | 'todos',
                     )
                   }
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 >
-                  <option value="todos">Todos os tipos</option>
+                  <option value="todos">
+                    Todos os tipos
+                  </option>
 
-                  <option value="entrada">Entrada</option>
+                  <option value="entrada">
+                    Entrada
+                  </option>
 
-                  <option value="saida">Saída</option>
+                  <option value="saida">
+                    Saída
+                  </option>
 
-                  <option value="criacao">Criação</option>
+                  <option value="criacao">
+                    Criação
+                  </option>
 
-                  <option value="atualizacao">Atualização</option>
+                  <option value="atualizacao">
+                    Atualização
+                  </option>
 
-                  <option value="remocao">Remoção</option>
+                  <option value="remocao">
+                    Remoção
+                  </option>
                 </select>
               </div>
 
               {/* Data inicial */}
+
               <div>
                 <label
                   htmlFor="start-date"
@@ -287,12 +428,15 @@ function StockHistory() {
                   id="start-date"
                   type="date"
                   value={startDate}
-                  onChange={(event) => setStartDate(event.target.value)}
+                  onChange={(event) =>
+                    setStartDate(event.target.value)
+                  }
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 />
               </div>
 
               {/* Data final */}
+
               <div>
                 <label
                   htmlFor="end-date"
@@ -306,12 +450,15 @@ function StockHistory() {
                   type="date"
                   value={endDate}
                   min={startDate || undefined}
-                  onChange={(event) => setEndDate(event.target.value)}
+                  onChange={(event) =>
+                    setEndDate(event.target.value)
+                  }
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
                 />
               </div>
 
               {/* Limpar */}
+
               <div className="flex items-end">
                 <button
                   type="button"
@@ -327,6 +474,7 @@ function StockHistory() {
           </div>
 
           {/* Resumo */}
+
           <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -390,6 +538,7 @@ function StockHistory() {
           </div>
 
           {/* Resultado dos filtros */}
+
           {filteredMovements.length === 0 ? (
             <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
               <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-600">
@@ -401,8 +550,8 @@ function StockHistory() {
               </h3>
 
               <p className="mt-2 max-w-sm text-sm text-slate-500">
-                Não existem movimentações que correspondam aos filtros
-                selecionados.
+                Não existem movimentações que correspondam
+                aos filtros selecionados.
               </p>
 
               <button
@@ -416,6 +565,7 @@ function StockHistory() {
             </div>
           ) : (
             /* Tabela */
+
             <div className="overflow-x-auto rounded-xl border border-slate-200">
               <table className="min-w-[950px] w-full">
                 <thead className="bg-slate-50">
@@ -448,7 +598,9 @@ function StockHistory() {
 
                 <tbody>
                   {filteredMovements.map((movement) => {
-                    const config = getMovementConfig(movement.type);
+                    const config = getMovementConfig(
+                      movement.type,
+                    );
 
                     const Icon = config.icon;
 
@@ -458,6 +610,7 @@ function StockHistory() {
                         className="border-b border-slate-100 transition hover:bg-slate-50"
                       >
                         {/* Produto */}
+
                         <td className="px-5 py-4">
                           <div>
                             <p className="font-semibold text-slate-800">
@@ -471,23 +624,28 @@ function StockHistory() {
                         </td>
 
                         {/* Tipo */}
+
                         <td className="px-5 py-4">
                           <span
                             className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold ${config.className}`}
                           >
                             <Icon size={14} />
+
                             {config.label}
                           </span>
                         </td>
 
                         {/* Descrição */}
+
                         <td className="max-w-xs px-5 py-4">
                           <p className="text-sm text-slate-600">
-                            {movement.description || 'Sem descrição'}
+                            {movement.description ||
+                              'Sem descrição'}
                           </p>
                         </td>
 
                         {/* Quantidade */}
+
                         <td className="px-5 py-4">
                           <span
                             className={`font-bold ${
@@ -504,13 +662,16 @@ function StockHistory() {
                         </td>
 
                         {/* Estoque */}
+
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2 text-sm">
                             <span className="font-medium text-slate-500">
                               {movement.previousQuantity}
                             </span>
 
-                            <span className="text-slate-400">→</span>
+                            <span className="text-slate-400">
+                              →
+                            </span>
 
                             <span className="font-bold text-slate-800">
                               {movement.newQuantity}
@@ -519,6 +680,7 @@ function StockHistory() {
                         </td>
 
                         {/* Data */}
+
                         <td className="whitespace-nowrap px-5 py-4 text-sm text-slate-500">
                           {formatDate(movement.date)}
                         </td>

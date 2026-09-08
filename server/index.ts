@@ -1,7 +1,8 @@
-import express from "express";
-import cors from "cors";
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { prisma } from './lib/prisma';
 
 const app = express();
 
@@ -14,15 +15,15 @@ const PORT = 3001;
 // Permite requisições apenas do frontend local
 app.use(
   cors({
-    origin: "http://localhost:5173",
-  }),
+    origin: 'http://localhost:5173',
+  })
 );
 
 // Adiciona headers de segurança
 app.use(helmet());
 
 // Limita o tamanho do JSON recebido
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({ limit: '1mb' }));
 
 // Limita a quantidade de requisições
 const apiLimiter = rateLimit({
@@ -31,59 +32,642 @@ const apiLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
   message: {
-    error: "Muitas requisições. Tente novamente mais tarde.",
+    error: 'Muitas requisições. Tente novamente mais tarde.',
   },
 });
 
-app.use("/api/", apiLimiter);
+app.use('/api/', apiLimiter);
 
 // =========================
 // Teste da API
 // =========================
 
-app.get("/api/test", (_req, res) => {
+app.get('/api/test', (_req, res) => {
   res.json({
-    message: "API funcionando!",
+    message: 'API funcionando!',
   });
+});
+
+// =========================
+// Produtos
+// =========================
+
+app.get('/api/products', async (_req, res) => {
+  try {
+    const products = await prisma.product.findMany({
+      orderBy: {
+        id: 'desc',
+      },
+    });
+
+    return res.json(
+      products.map((product) => ({
+        id: product.id,
+        name: product.name,
+        category: product.category,
+        quantity: product.quantity,
+        price: Number(product.price),
+        image: product.image ?? undefined,
+      }))
+    );
+  } catch (error) {
+    console.error('ERRO AO BUSCAR PRODUTOS:', error);
+
+    return res.status(500).json({
+      error: 'Não foi possível buscar os produtos.',
+    });
+  }
+});
+
+app.get('/api/products/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({
+        error: 'ID do produto inválido.',
+      });
+    }
+
+    const product = await prisma.product.findUnique({
+      where: { id },
+    });
+
+    if (!product) {
+      return res.status(404).json({
+        error: 'Produto não encontrado.',
+      });
+    }
+
+    return res.json({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      quantity: product.quantity,
+      price: Number(product.price),
+      image: product.image ?? undefined,
+    });
+  } catch (error) {
+    console.error('ERRO AO BUSCAR PRODUTO:', error);
+
+    return res.status(500).json({
+      error: 'Não foi possível buscar o produto.',
+    });
+  }
+});
+
+app.post('/api/products', async (req, res) => {
+  try {
+    const { name, category, quantity, price, image } = req.body;
+
+    if (typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Nome do produto é obrigatório.',
+      });
+    }
+
+    if (typeof category !== 'string' || category.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Categoria do produto é obrigatória.',
+      });
+    }
+
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      return res.status(400).json({
+        error: 'Quantidade inválida.',
+      });
+    }
+
+    if (typeof price !== 'number' || price < 0) {
+      return res.status(400).json({
+        error: 'Preço inválido.',
+      });
+    }
+
+    const product = await prisma.$transaction(async (tx) => {
+      const createdProduct = await tx.product.create({
+        data: {
+          name: name.trim(),
+          category: category.trim(),
+          quantity,
+          price,
+          image:
+            typeof image === 'string' && image.trim().length > 0
+              ? image.trim()
+              : null,
+        },
+      });
+
+      await tx.stockMovement.create({
+        data: {
+          productId: createdProduct.id,
+          productName: createdProduct.name,
+          type: 'criacao',
+          quantity: createdProduct.quantity,
+          previousQuantity: 0,
+          newQuantity: createdProduct.quantity,
+          description: 'Produto criado.',
+        },
+      });
+
+      return createdProduct;
+    });
+
+    return res.status(201).json({
+      id: product.id,
+      name: product.name,
+      category: product.category,
+      quantity: product.quantity,
+      price: Number(product.price),
+      image: product.image ?? undefined,
+    });
+  } catch (error) {
+    console.error('ERRO AO CRIAR PRODUTO:', error);
+
+    return res.status(500).json({
+      error: 'Não foi possível criar o produto.',
+    });
+  }
+});
+
+app.put('/api/products/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({
+        error: 'ID do produto inválido.',
+      });
+    }
+
+    const { name, category, quantity, price, image } = req.body;
+
+    if (typeof name !== 'string' || name.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Nome do produto é obrigatório.',
+      });
+    }
+
+    if (typeof category !== 'string' || category.trim().length === 0) {
+      return res.status(400).json({
+        error: 'Categoria do produto é obrigatória.',
+      });
+    }
+
+    if (!Number.isInteger(quantity) || quantity < 0) {
+      return res.status(400).json({
+        error: 'Quantidade inválida.',
+      });
+    }
+
+    if (typeof price !== 'number' || price < 0) {
+      return res.status(400).json({
+        error: 'Preço inválido.',
+      });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const existingProduct = await tx.product.findUnique({
+        where: { id },
+      });
+
+      if (!existingProduct) {
+        return null;
+      }
+
+      const updatedProduct = await tx.product.update({
+        where: { id },
+        data: {
+          name: name.trim(),
+          category: category.trim(),
+          quantity,
+          price,
+          image:
+            typeof image === 'string' && image.trim().length > 0
+              ? image.trim()
+              : null,
+        },
+      });
+
+      const quantityDifference =
+        updatedProduct.quantity - existingProduct.quantity;
+
+      if (quantityDifference > 0) {
+        await tx.stockMovement.create({
+          data: {
+            productId: updatedProduct.id,
+            productName: updatedProduct.name,
+            type: 'entrada',
+            quantity: quantityDifference,
+            previousQuantity: existingProduct.quantity,
+            newQuantity: updatedProduct.quantity,
+            description: `Entrada de ${quantityDifference} unidade(s)`,
+          },
+        });
+      } else if (quantityDifference < 0) {
+        await tx.stockMovement.create({
+          data: {
+            productId: updatedProduct.id,
+            productName: updatedProduct.name,
+            type: 'saida',
+            quantity: Math.abs(quantityDifference),
+            previousQuantity: existingProduct.quantity,
+            newQuantity: updatedProduct.quantity,
+            description: `Saída de ${Math.abs(quantityDifference)} unidade(s)`,
+          },
+        });
+      } else {
+        await tx.stockMovement.create({
+          data: {
+            productId: updatedProduct.id,
+            productName: updatedProduct.name,
+            type: 'atualizacao',
+            quantity: 0,
+            previousQuantity: existingProduct.quantity,
+            newQuantity: updatedProduct.quantity,
+            description: 'Informações do produto atualizadas.',
+          },
+        });
+      }
+
+      return updatedProduct;
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        error: 'Produto não encontrado.',
+      });
+    }
+
+    return res.json({
+      id: result.id,
+      name: result.name,
+      category: result.category,
+      quantity: result.quantity,
+      price: Number(result.price),
+      image: result.image ?? undefined,
+    });
+  } catch (error) {
+    console.error('ERRO AO ATUALIZAR PRODUTO:', error);
+
+    return res.status(500).json({
+      error: 'Não foi possível atualizar o produto.',
+    });
+  }
+});
+
+app.delete('/api/products/:id', async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({
+        error: 'ID do produto inválido.',
+      });
+    }
+
+    const result = await prisma.$transaction(async (tx) => {
+      const product = await tx.product.findUnique({
+        where: { id },
+      });
+
+      if (!product) {
+        return null;
+      }
+
+      await tx.stockMovement.create({
+        data: {
+          productId: product.id,
+          productName: product.name,
+          type: 'remocao',
+          quantity: product.quantity,
+          previousQuantity: product.quantity,
+          newQuantity: 0,
+          description: 'Produto removido.',
+        },
+      });
+
+      await tx.product.delete({
+        where: { id },
+      });
+
+      return product;
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        error: 'Produto não encontrado.',
+      });
+    }
+
+    return res.json({
+      message: `"${result.name}" foi removido com sucesso.`,
+    });
+  } catch (error) {
+    console.error('ERRO AO REMOVER PRODUTO:', error);
+
+    return res.status(500).json({
+      error: 'Não foi possível remover o produto.',
+    });
+  }
+});
+
+app.get('/api/movements', async (_req, res) => {
+  try {
+    const movements = await prisma.stockMovement.findMany({
+      orderBy: {
+        date: 'desc',
+      },
+    });
+
+    return res.json(
+      movements.map((movement) => ({
+        id: movement.id,
+        productId: movement.productId,
+        productName: movement.productName,
+        type: movement.type,
+        quantity: movement.quantity,
+        previousQuantity: movement.previousQuantity,
+        newQuantity: movement.newQuantity,
+        description: movement.description,
+        date: movement.date.toISOString(),
+      }))
+    );
+  } catch (error) {
+    console.error('ERRO AO BUSCAR HISTÓRICO:', error);
+
+    return res.status(500).json({
+      error: 'Não foi possível buscar o histórico.',
+    });
+  }
+});
+
+// =========================
+// Categorias
+// =========================
+
+app.get("/api/categories", async (_req, res) => {
+  try {
+    const categories = await prisma.category.findMany({
+      orderBy: {
+        name: "asc",
+      },
+    });
+
+    return res.json(
+      categories.map((category) => ({
+        id: category.id,
+        name: category.name,
+        createdAt: category.createdAt.toISOString(),
+      })),
+    );
+  } catch (error) {
+    console.error("ERRO AO BUSCAR CATEGORIAS:", error);
+
+    return res.status(500).json({
+      error: "Não foi possível buscar as categorias.",
+    });
+  }
+});
+
+app.post("/api/categories", async (req, res) => {
+  try {
+    const { name } = req.body;
+
+    if (typeof name !== "string" || name.trim().length === 0) {
+      return res.status(400).json({
+        error: "Nome da categoria é obrigatório.",
+      });
+    }
+
+    const trimmedName = name.trim();
+
+    const existingCategory = await prisma.category.findFirst({
+      where: {
+        name: {
+          equals: trimmedName,
+          mode: "insensitive",
+        },
+      },
+    });
+
+    if (existingCategory) {
+      return res.status(409).json({
+        error: "Já existe uma categoria com esse nome.",
+      });
+    }
+
+    const category = await prisma.category.create({
+      data: {
+        name: trimmedName,
+      },
+    });
+
+    return res.status(201).json({
+      id: category.id,
+      name: category.name,
+      createdAt: category.createdAt.toISOString(),
+    });
+  } catch (error) {
+    console.error("ERRO AO CRIAR CATEGORIA:", error);
+
+    return res.status(500).json({
+      error: "Não foi possível criar a categoria.",
+    });
+  }
+});
+
+app.put("/api/categories/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({
+        error: "ID da categoria inválido.",
+      });
+    }
+
+    const { name } = req.body;
+
+    if (typeof name !== "string" || name.trim().length === 0) {
+      return res.status(400).json({
+        error: "Nome da categoria é obrigatório.",
+      });
+    }
+
+    const trimmedName = name.trim();
+
+    const result = await prisma.$transaction(async (tx) => {
+      const category = await tx.category.findUnique({
+        where: { id },
+      });
+
+      if (!category) {
+        return null;
+      }
+
+      const duplicate = await tx.category.findFirst({
+        where: {
+          id: {
+            not: id,
+          },
+          name: {
+            equals: trimmedName,
+            mode: "insensitive",
+          },
+        },
+      });
+
+      if (duplicate) {
+        return {
+          duplicate: true,
+        };
+      }
+
+      await tx.category.update({
+        where: { id },
+        data: {
+          name: trimmedName,
+        },
+      });
+
+      // Mantém os produtos associados à categoria sincronizados
+      await tx.product.updateMany({
+        where: {
+          category: {
+            equals: category.name,
+            mode: "insensitive",
+          },
+        },
+        data: {
+          category: trimmedName,
+        },
+      });
+
+      const updatedCategory = await tx.category.findUnique({
+        where: { id },
+      });
+
+      return {
+        duplicate: false,
+        category: updatedCategory,
+      };
+    });
+
+    if (!result) {
+      return res.status(404).json({
+        error: "Categoria não encontrada.",
+      });
+    }
+
+    if (result.duplicate) {
+      return res.status(409).json({
+        error: "Já existe uma categoria com esse nome.",
+      });
+    }
+
+    return res.json({
+      id: result.category!.id,
+      name: result.category!.name,
+      createdAt: result.category!.createdAt.toISOString(),
+    });
+  } catch (error) {
+    console.error("ERRO AO ATUALIZAR CATEGORIA:", error);
+
+    return res.status(500).json({
+      error: "Não foi possível atualizar a categoria.",
+    });
+  }
+});
+
+app.delete("/api/categories/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({
+        error: "ID da categoria inválido.",
+      });
+    }
+
+    const category = await prisma.category.findUnique({
+      where: { id },
+    });
+
+    if (!category) {
+      return res.status(404).json({
+        error: "Categoria não encontrada.",
+      });
+    }
+
+    const productsUsingCategory = await prisma.product.count({
+      where: {
+        category: {
+          equals: category.name,
+          mode: "insensitive",
+        },
+      },
+    });
+
+    if (productsUsingCategory > 0) {
+      return res.status(409).json({
+        error: `Não é possível excluir "${category.name}" porque existem ${productsUsingCategory} produto(s) associados a essa categoria.`,
+      });
+    }
+
+    await prisma.category.delete({
+      where: { id },
+    });
+
+    return res.json({
+      message: `"${category.name}" foi excluída com sucesso.`,
+    });
+  } catch (error) {
+    console.error("ERRO AO REMOVER CATEGORIA:", error);
+
+    return res.status(500).json({
+      error: "Não foi possível remover a categoria.",
+    });
+  }
 });
 
 // =========================
 // Análise de estoque com Ollama
 // =========================
 
-app.post("/api/analisar-estoque", async (req, res) => {
+app.post('/api/analisar-estoque', async (req, res) => {
   try {
     const { products } = req.body;
 
     if (!Array.isArray(products)) {
       return res.status(400).json({
-        error: "Lista de produtos inválida.",
+        error: 'Lista de produtos inválida.',
       });
     }
 
     if (products.length > 100) {
       return res.status(400).json({
-        error: "A análise pode conter no máximo 100 produtos.",
+        error: 'A análise pode conter no máximo 100 produtos.',
       });
     }
 
     for (const product of products) {
-      if (!product || typeof product !== "object") {
+      if (!product || typeof product !== 'object') {
         return res.status(400).json({
-          error: "Um ou mais produtos possuem formato inválido.",
+          error: 'Um ou mais produtos possuem formato inválido.',
         });
       }
 
       if (
-        typeof product.name !== "string" ||
+        typeof product.name !== 'string' ||
         product.name.trim().length === 0
       ) {
         return res.status(400).json({
-          error: "Todo produto precisa possuir um nome válido.",
+          error: 'Todo produto precisa possuir um nome válido.',
         });
       }
 
-      if (typeof product.quantity !== "number") {
+      if (typeof product.quantity !== 'number') {
         return res.status(400).json({
           error: `Quantidade inválida para o produto "${product.name}".`,
         });
@@ -95,7 +679,7 @@ app.post("/api/analisar-estoque", async (req, res) => {
     // =========================
 
     const lowStockProducts = products.filter(
-      (product) => product.quantity <= 5,
+      (product) => product.quantity <= 5
     );
 
     const highestStockQuantity =
@@ -104,7 +688,7 @@ app.post("/api/analisar-estoque", async (req, res) => {
         : 0;
 
     const highestStockProducts = products.filter(
-      (product) => product.quantity === highestStockQuantity,
+      (product) => product.quantity === highestStockQuantity
     );
 
     // =========================
@@ -151,13 +735,13 @@ REGRAS:
 - Seja objetivo e organize a resposta de forma clara.
 `;
 
-    const response = await fetch("http://localhost:11434/api/generate", {
-      method: "POST",
+    const response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "qwen2.5:3b",
+        model: 'qwen2.5:3b',
         prompt,
         stream: false,
       }),
@@ -166,10 +750,10 @@ REGRAS:
     if (!response.ok) {
       const errorText = await response.text();
 
-      console.error("ERRO DO OLLAMA:", errorText);
+      console.error('ERRO DO OLLAMA:', errorText);
 
       return res.status(502).json({
-        error: "Erro ao se comunicar com o Ollama.",
+        error: 'Erro ao se comunicar com o Ollama.',
       });
     }
 
@@ -179,10 +763,10 @@ REGRAS:
       analysis: data.response,
     });
   } catch (error) {
-    console.error("ERRO INTERNO DA API:", error);
+    console.error('ERRO INTERNO DA API:', error);
 
     return res.status(500).json({
-      error: "Não foi possível analisar o estoque.",
+      error: 'Não foi possível analisar o estoque.',
     });
   }
 });
@@ -191,62 +775,62 @@ REGRAS:
 // Chat com IA sobre o estoque
 // =========================
 
-app.post("/api/chat-estoque", async (req, res) => {
+app.post('/api/chat-estoque', async (req, res) => {
   try {
     const { products, question } = req.body;
 
     // Verifica se products é um array
     if (!Array.isArray(products)) {
       return res.status(400).json({
-        error: "Lista de produtos inválida.",
+        error: 'Lista de produtos inválida.',
       });
     }
 
     // Limita a quantidade de produtos
     if (products.length > 100) {
       return res.status(400).json({
-        error: "A análise pode conter no máximo 100 produtos.",
+        error: 'A análise pode conter no máximo 100 produtos.',
       });
     }
 
     // Verifica a pergunta
-    if (typeof question !== "string" || question.trim().length === 0) {
+    if (typeof question !== 'string' || question.trim().length === 0) {
       return res.status(400).json({
-        error: "A pergunta é obrigatória.",
+        error: 'A pergunta é obrigatória.',
       });
     }
 
     // Limita o tamanho da pergunta
     if (question.length > 1000) {
       return res.status(400).json({
-        error: "A pergunta deve ter no máximo 1000 caracteres.",
+        error: 'A pergunta deve ter no máximo 1000 caracteres.',
       });
     }
 
     // Valida os produtos
     for (const product of products) {
-      if (!product || typeof product !== "object") {
+      if (!product || typeof product !== 'object') {
         return res.status(400).json({
-          error: "Um ou mais produtos possuem formato inválido.",
+          error: 'Um ou mais produtos possuem formato inválido.',
         });
       }
 
       if (
-        typeof product.name !== "string" ||
+        typeof product.name !== 'string' ||
         product.name.trim().length === 0
       ) {
         return res.status(400).json({
-          error: "Todo produto precisa possuir um nome válido.",
+          error: 'Todo produto precisa possuir um nome válido.',
         });
       }
 
-      if (typeof product.quantity !== "number") {
+      if (typeof product.quantity !== 'number') {
         return res.status(400).json({
           error: `Quantidade inválida para o produto "${product.name}".`,
         });
       }
 
-      if (product.price !== undefined && typeof product.price !== "number") {
+      if (product.price !== undefined && typeof product.price !== 'number') {
         return res.status(400).json({
           error: `Preço inválido para o produto "${product.name}".`,
         });
@@ -259,7 +843,7 @@ app.post("/api/chat-estoque", async (req, res) => {
 
     // Estoque baixo = quantidade <= 5
     const lowStockProducts = products.filter(
-      (product) => product.quantity <= 5,
+      (product) => product.quantity <= 5
     );
 
     // Produto(s) com maior quantidade
@@ -269,7 +853,7 @@ app.post("/api/chat-estoque", async (req, res) => {
         : 0;
 
     const highestStockProducts = products.filter(
-      (product) => product.quantity === highestStockQuantity,
+      (product) => product.quantity === highestStockQuantity
     );
 
     // Produto(s) com menor quantidade
@@ -279,13 +863,13 @@ app.post("/api/chat-estoque", async (req, res) => {
         : 0;
 
     const lowestStockProducts = products.filter(
-      (product) => product.quantity === lowestStockQuantity,
+      (product) => product.quantity === lowestStockQuantity
     );
 
     // Valor total do estoque
     const totalStockValue = products.reduce(
       (total, product) => total + product.quantity * (product.price || 0),
-      0,
+      0
     );
 
     // =========================
@@ -356,13 +940,13 @@ REGRAS DE RESPOSTA
 - Se a pergunta não tiver relação com o estoque, informe educadamente que você pode ajudar apenas com informações relacionadas ao estoque.
 `;
 
-    const response = await fetch("http://localhost:11434/api/generate", {
-      method: "POST",
+    const response = await fetch('http://localhost:11434/api/generate', {
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: "qwen2.5:3b",
+        model: 'qwen2.5:3b',
         prompt,
         stream: false,
       }),
@@ -372,10 +956,10 @@ REGRAS DE RESPOSTA
     if (!response.ok) {
       const errorText = await response.text();
 
-      console.error("ERRO DO OLLAMA NO CHAT:", errorText);
+      console.error('ERRO DO OLLAMA NO CHAT:', errorText);
 
       return res.status(502).json({
-        error: "Erro ao se comunicar com o Ollama.",
+        error: 'Erro ao se comunicar com o Ollama.',
       });
     }
 
@@ -385,10 +969,10 @@ REGRAS DE RESPOSTA
       answer: data.response,
     });
   } catch (error) {
-    console.error("ERRO INTERNO DO CHAT:", error);
+    console.error('ERRO INTERNO DO CHAT:', error);
 
     return res.status(500).json({
-      error: "Não foi possível processar a pergunta.",
+      error: 'Não foi possível processar a pergunta.',
     });
   }
 });
