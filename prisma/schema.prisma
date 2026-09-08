@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Product {
+  id       Int     @id @default(autoincrement())
+  name     String
+  category String
+  quantity Int
+  price    Decimal @db.Decimal(10, 2)
+  image    String?
+
+  movements StockMovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model StockMovement {
+  id               String   @id @default(cuid())
+  productId        Int
+  productName      String
+  type             String
+  quantity         Int
+  previousQuantity Int
+  newQuantity      Int
+  description      String
+  date             DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([date])
+}
