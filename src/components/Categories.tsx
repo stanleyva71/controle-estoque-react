@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState } from 'react';
 
 import {
   FolderTree,
@@ -9,71 +9,77 @@ import {
   Package,
   X,
   Save,
-} from "lucide-react";
+} from 'lucide-react';
 
-import DeleteModal from "./DeleteModal";
+import DeleteModal from './DeleteModal';
 
-import type { Category } from "../types/Category";
-import type { Product } from "../types/Product";
+import type { Category } from '../types/Category';
+import type { Product } from '../types/Product';
 
 interface CategoriesProps {
   products: Product[];
   updateProducts: (products: Product[]) => void;
 }
 
-const API_URL = "http://localhost:3001/api";
+const API_URL = 'http://localhost:3001/api';
 
-function Categories({
-  products,
-  updateProducts,
-}: CategoriesProps) {
+function Categories({ products, updateProducts }: CategoriesProps) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryToDelete, setCategoryToDelete] =
-    useState<Category | null>(null);
+  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
+    null
+  );
 
-  const [search, setSearch] = useState("");
-  const [categoryName, setCategoryName] = useState("");
-  const [editingCategory, setEditingCategory] =
-    useState<Category | null>(null);
+  const [search, setSearch] = useState('');
+  const [categoryName, setCategoryName] = useState('');
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  const [error, setError] = useState("");
+  const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // =========================
-  // Carregar categorias
-  // =========================
-
-  async function loadCategories() {
-    try {
-      setLoading(true);
-      setError("");
-
-      const response = await fetch(`${API_URL}/categories`);
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.error || "Não foi possível carregar as categorias.",
-        );
-      }
-
-      setCategories(data);
-    } catch (error) {
-      console.error("ERRO AO CARREGAR CATEGORIAS:", error);
-
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Não foi possível carregar as categorias.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  }
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadCategories() {
+      try {
+        setLoading(true);
+        setError('');
+
+        const response = await fetch(`${API_URL}/categories`);
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(
+            data.error || 'Não foi possível carregar as categorias.'
+          );
+        }
+
+        if (!cancelled) {
+          setCategories(data);
+        }
+      } catch (error) {
+        console.error('ERRO AO CARREGAR CATEGORIAS:', error);
+
+        if (!cancelled) {
+          setError(
+            error instanceof Error
+              ? error.message
+              : 'Não foi possível carregar as categorias.'
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
     loadCategories();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // =========================
@@ -82,22 +88,22 @@ function Categories({
 
   function openCreateForm() {
     setEditingCategory(null);
-    setCategoryName("");
-    setError("");
+    setCategoryName('');
+    setError('');
     setShowForm(true);
   }
 
   function openEditForm(category: Category) {
     setEditingCategory(category);
     setCategoryName(category.name);
-    setError("");
+    setError('');
     setShowForm(true);
   }
 
   function closeForm() {
     setEditingCategory(null);
-    setCategoryName("");
-    setError("");
+    setCategoryName('');
+    setError('');
     setShowForm(false);
   }
 
@@ -105,20 +111,18 @@ function Categories({
   // Criar / editar
   // =========================
 
-  async function handleSubmit(
-    event: React.FormEvent<HTMLFormElement>,
-  ) {
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const trimmedName = categoryName.trim();
 
     if (!trimmedName) {
-      setError("Digite o nome da categoria.");
+      setError('Digite o nome da categoria.');
       return;
     }
 
     try {
-      setError("");
+      setError('');
 
       if (editingCategory) {
         const oldName = editingCategory.name;
@@ -126,48 +130,46 @@ function Categories({
         const response = await fetch(
           `${API_URL}/categories/${editingCategory.id}`,
           {
-            method: "PUT",
+            method: 'PUT',
             headers: {
-              "Content-Type": "application/json",
+              'Content-Type': 'application/json',
             },
             body: JSON.stringify({
               name: trimmedName,
             }),
-          },
+          }
         );
 
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.error ||
-              "Não foi possível atualizar a categoria.",
+            data.error || 'Não foi possível atualizar a categoria.'
           );
         }
 
         // Sincroniza o estado dos produtos no frontend.
         const updatedProducts = products.map((product) =>
-          product.category.toLowerCase() ===
-          oldName.toLowerCase()
+          product.category.toLowerCase() === oldName.toLowerCase()
             ? {
                 ...product,
                 category: data.name,
               }
-            : product,
+            : product
         );
 
         updateProducts(updatedProducts);
 
         setCategories((currentCategories) =>
           currentCategories.map((category) =>
-            category.id === data.id ? data : category,
-          ),
+            category.id === data.id ? data : category
+          )
         );
       } else {
         const response = await fetch(`${API_URL}/categories`, {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
             name: trimmedName,
@@ -177,26 +179,20 @@ function Categories({
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            data.error ||
-              "Não foi possível criar a categoria.",
-          );
+          throw new Error(data.error || 'Não foi possível criar a categoria.');
         }
 
-        setCategories((currentCategories) => [
-          ...currentCategories,
-          data,
-        ]);
+        setCategories((currentCategories) => [...currentCategories, data]);
       }
 
       closeForm();
     } catch (error) {
-      console.error("ERRO AO SALVAR CATEGORIA:", error);
+      console.error('ERRO AO SALVAR CATEGORIA:', error);
 
       setError(
         error instanceof Error
           ? error.message
-          : "Não foi possível salvar a categoria.",
+          : 'Não foi possível salvar a categoria.'
       );
     }
   }
@@ -206,7 +202,7 @@ function Categories({
   // =========================
 
   function handleDelete(category: Category) {
-    setError("");
+    setError('');
     setCategoryToDelete(category);
   }
 
@@ -216,38 +212,35 @@ function Categories({
     }
 
     try {
-      setError("");
+      setError('');
 
       const response = await fetch(
         `${API_URL}/categories/${categoryToDelete.id}`,
         {
-          method: "DELETE",
-        },
+          method: 'DELETE',
+        }
       );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error ||
-            "Não foi possível excluir a categoria.",
-        );
+        throw new Error(data.error || 'Não foi possível excluir a categoria.');
       }
 
       setCategories((currentCategories) =>
         currentCategories.filter(
-          (category) => category.id !== categoryToDelete.id,
-        ),
+          (category) => category.id !== categoryToDelete.id
+        )
       );
 
       setCategoryToDelete(null);
     } catch (error) {
-      console.error("ERRO AO EXCLUIR CATEGORIA:", error);
+      console.error('ERRO AO EXCLUIR CATEGORIA:', error);
 
       setError(
         error instanceof Error
           ? error.message
-          : "Não foi possível excluir a categoria.",
+          : 'Não foi possível excluir a categoria.'
       );
 
       setCategoryToDelete(null);
@@ -259,21 +252,17 @@ function Categories({
   // =========================
 
   const filteredCategories = categories.filter((category) =>
-    category.name
-      .toLowerCase()
-      .includes(search.toLowerCase()),
+    category.name.toLowerCase().includes(search.toLowerCase())
   );
 
   function getProductCount(categoryName: string) {
     return products.filter(
-      (product) =>
-        product.category.toLowerCase() ===
-        categoryName.toLowerCase(),
+      (product) => product.category.toLowerCase() === categoryName.toLowerCase()
     ).length;
   }
 
   const categoriesWithoutProducts = categories.filter(
-    (category) => getProductCount(category.name) === 0,
+    (category) => getProductCount(category.name) === 0
   ).length;
 
   // =========================
@@ -320,9 +309,7 @@ function Categories({
             </div>
 
             <div>
-              <h2 className="text-xl font-bold text-slate-800">
-                Categorias
-              </h2>
+              <h2 className="text-xl font-bold text-slate-800">Categorias</h2>
 
               <p className="mt-1 text-sm text-slate-500">
                 Organize os produtos do seu estoque.
@@ -344,13 +331,11 @@ function Categories({
 
         {error && !showForm && (
           <div className="mb-5 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-            <p className="text-sm font-medium text-red-600">
-              {error}
-            </p>
+            <p className="text-sm font-medium text-red-600">{error}</p>
 
             <button
               type="button"
-              onClick={() => setError("")}
+              onClick={() => setError('')}
               className="ml-4 text-red-500 transition hover:text-red-700"
               aria-label="Fechar mensagem"
             >
@@ -417,9 +402,7 @@ function Categories({
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-slate-800">
-                  {editingCategory
-                    ? "Editar categoria"
-                    : "Nova categoria"}
+                  {editingCategory ? 'Editar categoria' : 'Nova categoria'}
                 </h3>
 
                 <p className="mt-1 text-sm text-slate-500">
@@ -445,9 +428,7 @@ function Categories({
                 type="text"
                 placeholder="Ex: Periféricos"
                 value={categoryName}
-                onChange={(event) =>
-                  setCategoryName(event.target.value)
-                }
+                onChange={(event) => setCategoryName(event.target.value)}
                 autoFocus
                 className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
@@ -457,7 +438,7 @@ function Categories({
                 className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
               >
                 <Save size={18} />
-                {editingCategory ? "Salvar" : "Criar"}
+                {editingCategory ? 'Salvar' : 'Criar'}
               </button>
 
               <button
@@ -470,9 +451,7 @@ function Categories({
             </form>
 
             {error && (
-              <p className="mt-3 text-sm font-medium text-red-600">
-                {error}
-              </p>
+              <p className="mt-3 text-sm font-medium text-red-600">{error}</p>
             )}
           </div>
         )}
@@ -487,14 +466,14 @@ function Categories({
 
             <h3 className="text-lg font-bold text-slate-700">
               {categories.length === 0
-                ? "Nenhuma categoria cadastrada"
-                : "Nenhuma categoria encontrada"}
+                ? 'Nenhuma categoria cadastrada'
+                : 'Nenhuma categoria encontrada'}
             </h3>
 
             <p className="mt-2 max-w-sm text-sm text-slate-500">
               {categories.length === 0
-                ? "Crie sua primeira categoria para começar a organizar os produtos."
-                : "Tente utilizar outro termo na busca."}
+                ? 'Crie sua primeira categoria para começar a organizar os produtos.'
+                : 'Tente utilizar outro termo na busca.'}
             </p>
           </div>
         ) : (
@@ -523,9 +502,7 @@ function Categories({
 
                 <tbody>
                   {filteredCategories.map((category) => {
-                    const productCount = getProductCount(
-                      category.name,
-                    );
+                    const productCount = getProductCount(category.name);
 
                     return (
                       <tr
@@ -552,20 +529,16 @@ function Categories({
                         </td>
 
                         <td className="px-5 py-4 text-sm text-slate-500">
-                          {new Intl.DateTimeFormat("pt-BR", {
-                            dateStyle: "short",
-                          }).format(
-                            new Date(category.createdAt),
-                          )}
+                          {new Intl.DateTimeFormat('pt-BR', {
+                            dateStyle: 'short',
+                          }).format(new Date(category.createdAt))}
                         </td>
 
                         <td className="px-5 py-4">
                           <div className="flex justify-end gap-2">
                             <button
                               type="button"
-                              onClick={() =>
-                                openEditForm(category)
-                              }
+                              onClick={() => openEditForm(category)}
                               className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition hover:bg-blue-100"
                               title="Editar categoria"
                             >
@@ -574,9 +547,7 @@ function Categories({
 
                             <button
                               type="button"
-                              onClick={() =>
-                                handleDelete(category)
-                              }
+                              onClick={() => handleDelete(category)}
                               className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100"
                               title="Excluir categoria"
                             >

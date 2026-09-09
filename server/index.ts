@@ -406,11 +406,11 @@ app.get('/api/movements', async (_req, res) => {
 // Categorias
 // =========================
 
-app.get("/api/categories", async (_req, res) => {
+app.get('/api/categories', async (_req, res) => {
   try {
     const categories = await prisma.category.findMany({
       orderBy: {
-        name: "asc",
+        name: 'asc',
       },
     });
 
@@ -419,24 +419,24 @@ app.get("/api/categories", async (_req, res) => {
         id: category.id,
         name: category.name,
         createdAt: category.createdAt.toISOString(),
-      })),
+      }))
     );
   } catch (error) {
-    console.error("ERRO AO BUSCAR CATEGORIAS:", error);
+    console.error('ERRO AO BUSCAR CATEGORIAS:', error);
 
     return res.status(500).json({
-      error: "Não foi possível buscar as categorias.",
+      error: 'Não foi possível buscar as categorias.',
     });
   }
 });
 
-app.post("/api/categories", async (req, res) => {
+app.post('/api/categories', async (req, res) => {
   try {
     const { name } = req.body;
 
-    if (typeof name !== "string" || name.trim().length === 0) {
+    if (typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json({
-        error: "Nome da categoria é obrigatório.",
+        error: 'Nome da categoria é obrigatório.',
       });
     }
 
@@ -446,14 +446,14 @@ app.post("/api/categories", async (req, res) => {
       where: {
         name: {
           equals: trimmedName,
-          mode: "insensitive",
+          mode: 'insensitive',
         },
       },
     });
 
     if (existingCategory) {
       return res.status(409).json({
-        error: "Já existe uma categoria com esse nome.",
+        error: 'Já existe uma categoria com esse nome.',
       });
     }
 
@@ -469,29 +469,29 @@ app.post("/api/categories", async (req, res) => {
       createdAt: category.createdAt.toISOString(),
     });
   } catch (error) {
-    console.error("ERRO AO CRIAR CATEGORIA:", error);
+    console.error('ERRO AO CRIAR CATEGORIA:', error);
 
     return res.status(500).json({
-      error: "Não foi possível criar a categoria.",
+      error: 'Não foi possível criar a categoria.',
     });
   }
 });
 
-app.put("/api/categories/:id", async (req, res) => {
+app.put('/api/categories/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id)) {
       return res.status(400).json({
-        error: "ID da categoria inválido.",
+        error: 'ID da categoria inválido.',
       });
     }
 
     const { name } = req.body;
 
-    if (typeof name !== "string" || name.trim().length === 0) {
+    if (typeof name !== 'string' || name.trim().length === 0) {
       return res.status(400).json({
-        error: "Nome da categoria é obrigatório.",
+        error: 'Nome da categoria é obrigatório.',
       });
     }
 
@@ -513,7 +513,7 @@ app.put("/api/categories/:id", async (req, res) => {
           },
           name: {
             equals: trimmedName,
-            mode: "insensitive",
+            mode: 'insensitive',
           },
         },
       });
@@ -536,7 +536,7 @@ app.put("/api/categories/:id", async (req, res) => {
         where: {
           category: {
             equals: category.name,
-            mode: "insensitive",
+            mode: 'insensitive',
           },
         },
         data: {
@@ -556,13 +556,13 @@ app.put("/api/categories/:id", async (req, res) => {
 
     if (!result) {
       return res.status(404).json({
-        error: "Categoria não encontrada.",
+        error: 'Categoria não encontrada.',
       });
     }
 
     if (result.duplicate) {
       return res.status(409).json({
-        error: "Já existe uma categoria com esse nome.",
+        error: 'Já existe uma categoria com esse nome.',
       });
     }
 
@@ -572,21 +572,21 @@ app.put("/api/categories/:id", async (req, res) => {
       createdAt: result.category!.createdAt.toISOString(),
     });
   } catch (error) {
-    console.error("ERRO AO ATUALIZAR CATEGORIA:", error);
+    console.error('ERRO AO ATUALIZAR CATEGORIA:', error);
 
     return res.status(500).json({
-      error: "Não foi possível atualizar a categoria.",
+      error: 'Não foi possível atualizar a categoria.',
     });
   }
 });
 
-app.delete("/api/categories/:id", async (req, res) => {
+app.delete('/api/categories/:id', async (req, res) => {
   try {
     const id = Number(req.params.id);
 
     if (!Number.isInteger(id)) {
       return res.status(400).json({
-        error: "ID da categoria inválido.",
+        error: 'ID da categoria inválido.',
       });
     }
 
@@ -596,7 +596,7 @@ app.delete("/api/categories/:id", async (req, res) => {
 
     if (!category) {
       return res.status(404).json({
-        error: "Categoria não encontrada.",
+        error: 'Categoria não encontrada.',
       });
     }
 
@@ -604,7 +604,7 @@ app.delete("/api/categories/:id", async (req, res) => {
       where: {
         category: {
           equals: category.name,
-          mode: "insensitive",
+          mode: 'insensitive',
         },
       },
     });
@@ -623,10 +623,10 @@ app.delete("/api/categories/:id", async (req, res) => {
       message: `"${category.name}" foi excluída com sucesso.`,
     });
   } catch (error) {
-    console.error("ERRO AO REMOVER CATEGORIA:", error);
+    console.error('ERRO AO REMOVER CATEGORIA:', error);
 
     return res.status(500).json({
-      error: "Não foi possível remover a categoria.",
+      error: 'Não foi possível remover a categoria.',
     });
   }
 });
@@ -694,45 +694,91 @@ app.post('/api/analisar-estoque', async (req, res) => {
     // =========================
     // Prompt para a IA
     // =========================
-
+    
     const prompt = `
-Você é um assistente especializado em gestão de estoque.
+Você é um assistente de gestão de estoque.
 
-IMPORTANTE:
-As regras abaixo já foram calculadas pelo sistema. 
-Você NÃO deve alterar, reinterpretar ou inventar esses valores.
+Sua função é APENAS explicar os dados calculados pelo sistema.
 
-Regra de estoque baixo:
-Um produto só é considerado com estoque baixo quando sua quantidade é MENOR OU IGUAL A 5.
+=========================
+DADOS DOS PRODUTOS
+=========================
 
-Produtos cadastrados:
 ${JSON.stringify(products, null, 2)}
 
-Produtos que o sistema identificou como estoque baixo:
+=========================
+DADOS CALCULADOS PELO SISTEMA
+=========================
+
+Regra de estoque baixo:
+Um produto é considerado estoque baixo SOMENTE quando sua quantidade
+é menor ou igual a 5.
+
+Produtos com estoque baixo:
 ${JSON.stringify(lowStockProducts, null, 2)}
 
-Produto(s) com maior quantidade em estoque:
-${JSON.stringify(highestStockProducts, null, 2)}
-
-Maior quantidade encontrada:
+Maior quantidade em estoque:
 ${highestStockQuantity}
 
-Com base nesses dados, faça uma análise clara e objetiva.
+Produto(s) com maior quantidade:
+${JSON.stringify(highestStockProducts, null, 2)}
 
-Identifique:
-- produtos com estoque baixo;
-- produtos que precisam de reposição;
-- produto(s) com maior quantidade;
-- prioridades;
-- recomendações para o gestor.
+=========================
+REGRAS OBRIGATÓRIAS
+=========================
 
-REGRAS:
-- Nunca considere um produto com quantidade maior que 5 como estoque baixo.
-- Nunca altere a quantidade dos produtos.
-- Nunca invente produtos.
-- Quando falar sobre o produto com maior estoque, use os dados fornecidos pelo sistema.
-- Responda em português do Brasil.
-- Seja objetivo e organize a resposta de forma clara.
+1. NÃO faça novos cálculos.
+2. NÃO altere nenhuma quantidade.
+3. NÃO invente produtos.
+4. NÃO invente valores.
+5. NÃO considere estoque baixo um produto com quantidade maior que 5.
+6. Produtos com quantidade maior que 5 NÃO devem ser classificados como estoque baixo.
+7. Produtos que NÃO aparecem em "Produtos com estoque baixo" NÃO possuem estoque baixo.
+8. Não recomende reposição para produtos que não estão em estoque baixo.
+9. Não invente dados de vendas, demanda ou previsão de consumo.
+10. Não sugira aumentar quantidades sem dados fornecidos pelo sistema.
+11. Use exclusivamente os dados apresentados acima.
+
+=========================
+FORMATO DA RESPOSTA
+=========================
+
+### Produtos com estoque baixo
+
+Liste somente os produtos presentes na lista "Produtos com estoque baixo".
+
+Caso a lista esteja vazia, escreva:
+"Nenhum produto está com estoque baixo."
+
+### Produtos que precisam de reposição
+
+Considere como necessidade de reposição somente os produtos presentes
+na lista de estoque baixo.
+
+Caso não existam produtos nessa lista, escreva:
+"Nenhum produto precisa de reposição imediata com base na regra atual."
+
+### Produto(s) com maior quantidade
+
+Informe exatamente o(s) produto(s) presente(s) na lista
+"Produto(s) com maior quantidade".
+
+### Prioridades
+
+Defina a prioridade somente com base nos dados fornecidos.
+
+Produtos com estoque baixo possuem prioridade de reposição.
+Produtos que não estão com estoque baixo não devem ser classificados
+como prioridade de reposição.
+
+### Recomendações
+
+Faça recomendações simples e baseadas somente nos dados disponíveis.
+
+Não invente demanda, vendas futuras ou quantidades de compra.
+
+Responda em português do Brasil.
+Seja objetivo.
 `;
 
     const response = await fetch('http://localhost:11434/api/generate', {
@@ -872,6 +918,24 @@ app.post('/api/chat-estoque', async (req, res) => {
       0
     );
 
+    const highestPrice =
+      products.length > 0
+        ? Math.max(...products.map((product) => product.price || 0))
+        : 0;
+
+    const lowestPrice =
+      products.length > 0
+        ? Math.min(...products.map((product) => product.price || 0))
+        : 0;
+
+    const highestPriceProducts = products.filter(
+      (product) => (product.price || 0) === highestPrice
+    );
+
+    const lowestPriceProducts = products.filter(
+      (product) => (product.price || 0) === lowestPrice
+    );
+
     // =========================
     // Prompt
     // =========================
@@ -914,7 +978,24 @@ Produto(s) com menor quantidade:
 ${JSON.stringify(lowestStockProducts, null, 2)}
 
 Valor total do estoque:
+
 ${totalStockValue}
+
+Maior preço:
+
+${highestPrice}
+
+Produto(s) com maior preço:
+
+${JSON.stringify(highestPriceProducts, null, 2)}
+
+Menor preço:
+
+${lowestPrice}
+
+Produto(s) com menor preço:
+
+${JSON.stringify(lowestPriceProducts, null, 2)}
 
 =========================
 PERGUNTA DO USUÁRIO
@@ -937,6 +1018,21 @@ REGRAS DE RESPOSTA
 - Não diga que um produto precisa de reposição apenas porque a quantidade dele é menor que a de outro produto.
 - Seja objetivo e claro.
 - Quando fizer sentido, use listas.
+- Quando perguntarem sobre maior preço, use exclusivamente os dados calculados pelo sistema.
+- Quando perguntarem sobre menor preço, use exclusivamente os dados calculados pelo sistema.
+- Não faça cálculos próprios.
+- Não invente preços.
+- NÃO mostre JSON na resposta.
+- NÃO mostre os dados brutos dos produtos.
+- NÃO copie os blocos "Produto(s) com maior preço", "Produto(s) com menor preço",
+  "Produto(s) com maior quantidade" ou outros dados calculados.
+- Use esses dados apenas como referência para elaborar a resposta.
+- Responda diretamente à pergunta do usuário.
+- Não explique como os dados foram calculados.
+- Não repita a pergunta do usuário.
+- Não use estruturas como "[{ ... }]" na resposta.
+- Quando a pergunta pedir um produto, informe o nome e o valor relevante.
+- Para preços, apresente os valores em reais no formato R$ 0,00.
 - Se a pergunta não tiver relação com o estoque, informe educadamente que você pode ajudar apenas com informações relacionadas ao estoque.
 `;
 
