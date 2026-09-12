@@ -17,7 +17,7 @@ import type { Product } from '../types/Product';
 interface ProductListProps {
   products: Product[];
 
-  deleteProduct: (id: number) => void;
+  deleteProduct: (id: number) => Promise<void>;
 
   editProduct: (product: Product) => void;
 }
@@ -31,12 +31,9 @@ function ProductList({
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortOption, setSortOption] = useState('name');
   const [showLowStock, setShowLowStock] = useState(false);
-  const [productToDelete, setProductToDelete] =
-    useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
 
-  const categories = [
-    ...new Set(products.map((product) => product.category)),
-  ];
+  const categories = [...new Set(products.map((product) => product.category))];
 
   const filteredProducts = products.filter((product) => {
     const searchText = search.toLowerCase();
@@ -46,44 +43,36 @@ function ProductList({
       product.category.toLowerCase().includes(searchText);
 
     const matchesCategory =
-      selectedCategory === '' ||
-      product.category === selectedCategory;
+      selectedCategory === '' || product.category === selectedCategory;
 
-    const matchesLowStock =
-      !showLowStock || product.quantity <= 5;
+    const matchesLowStock = !showLowStock || product.quantity <= 5;
 
-    return (
-      matchesSearch &&
-      matchesCategory &&
-      matchesLowStock
-    );
+    return matchesSearch && matchesCategory && matchesLowStock;
   });
 
-  const sortedProducts = [...filteredProducts].sort(
-    (a, b) => {
-      if (sortOption === 'name') {
-        return a.name.localeCompare(b.name);
-      }
+  const sortedProducts = [...filteredProducts].sort((a, b) => {
+    if (sortOption === 'name') {
+      return a.name.localeCompare(b.name);
+    }
 
-      if (sortOption === 'quantity-low') {
-        return a.quantity - b.quantity;
-      }
+    if (sortOption === 'quantity-low') {
+      return a.quantity - b.quantity;
+    }
 
-      if (sortOption === 'quantity-high') {
-        return b.quantity - a.quantity;
-      }
+    if (sortOption === 'quantity-high') {
+      return b.quantity - a.quantity;
+    }
 
-      if (sortOption === 'price-low') {
-        return a.price - b.price;
-      }
+    if (sortOption === 'price-low') {
+      return a.price - b.price;
+    }
 
-      if (sortOption === 'price-high') {
-        return b.price - a.price;
-      }
+    if (sortOption === 'price-high') {
+      return b.price - a.price;
+    }
 
-      return 0;
-    },
-  );
+    return 0;
+  });
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -177,15 +166,10 @@ function ProductList({
               focus:ring-blue-100
             "
           >
-            <option value="">
-              Todas as categorias
-            </option>
+            <option value="">Todas as categorias</option>
 
             {categories.map((category) => (
-              <option
-                key={category}
-                value={category}
-              >
+              <option key={category} value={category}>
                 {category}
               </option>
             ))}
@@ -222,25 +206,15 @@ function ProductList({
               focus:ring-blue-100
             "
           >
-            <option value="name">
-              Nome: A → Z
-            </option>
+            <option value="name">Nome: A → Z</option>
 
-            <option value="quantity-low">
-              Menor quantidade
-            </option>
+            <option value="quantity-low">Menor quantidade</option>
 
-            <option value="quantity-high">
-              Maior quantidade
-            </option>
+            <option value="quantity-high">Maior quantidade</option>
 
-            <option value="price-low">
-              Menor preço
-            </option>
+            <option value="price-low">Menor preço</option>
 
-            <option value="price-high">
-              Maior preço
-            </option>
+            <option value="price-high">Maior preço</option>
           </select>
         </div>
       </div>
@@ -257,10 +231,7 @@ function ProductList({
           className="h-5 w-5 cursor-pointer accent-blue-600"
         />
 
-        <AlertTriangle
-          size={20}
-          className="text-amber-500"
-        />
+        <AlertTriangle size={20} className="text-amber-500" />
 
         <span className="text-sm font-medium text-slate-700">
           Mostrar somente produtos com estoque baixo
@@ -318,8 +289,7 @@ function ProductList({
 
             <tbody>
               {sortedProducts.map((product) => {
-                const lowStock =
-                  product.quantity <= 5;
+                const lowStock = product.quantity <= 5;
 
                 return (
                   <tr
@@ -338,9 +308,7 @@ function ProductList({
                           />
                         ) : (
                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-600">
-                            {product.name
-                              .charAt(0)
-                              .toUpperCase()}
+                            {product.name.charAt(0).toUpperCase()}
                           </div>
                         )}
 
@@ -351,10 +319,7 @@ function ProductList({
 
                           {lowStock && (
                             <p className="mt-1 flex items-center gap-1 text-xs font-medium text-red-600">
-                              <AlertTriangle
-                                size={13}
-                              />
-
+                              <AlertTriangle size={13} />
                               Estoque baixo
                             </p>
                           )}
@@ -460,9 +425,8 @@ function ProductList({
           onCancel={() => {
             setProductToDelete(null);
           }}
-          onConfirm={() => {
-            deleteProduct(productToDelete.id);
-
+          onConfirm={async () => {
+            await deleteProduct(productToDelete.id);
             setProductToDelete(null);
           }}
         />

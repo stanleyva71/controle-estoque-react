@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-
+import Users from './pages/Users';
 import Toast from './components/Toast';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -21,7 +21,7 @@ import type { Product } from './types/Product';
 function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState<
-    'dashboard' | 'products' | 'history' | 'categories'
+    'dashboard' | 'products' | 'history' | 'categories' | 'users'
   >('dashboard');
   const [toastMessage, setToastMessage] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -135,7 +135,7 @@ function App() {
   // Excluir produto
   // =========================
 
-  async function deleteProduct(id: number) {
+  async function deleteProduct(id: number): Promise<void> {
     const productToDelete = products.find((product) => product.id === id);
 
     try {
@@ -164,6 +164,8 @@ function App() {
           ? error.message
           : 'Não foi possível excluir o produto.'
       );
+
+      throw error;
     }
   }
 
@@ -229,10 +231,14 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-100 lg:flex">
       {toastMessage && (
-        <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+        <Toast
+          message={toastMessage}
+          onClose={() => setToastMessage('')}
+        />
       )}
 
       <Sidebar
+        user={user}
         onDashboard={() => {
           setFocusProductForm(false);
           setEditingProduct(null);
@@ -254,6 +260,11 @@ function App() {
         onHistory={() => {
           setFocusProductForm(false);
           setCurrentPage('history');
+        }}
+        onUsers={() => {
+          setFocusProductForm(false);
+          setEditingProduct(null);
+          setCurrentPage('users');
         }}
       />
 
@@ -287,6 +298,8 @@ function App() {
               {currentPage === 'categories' && (
                 <Categories products={products} updateProducts={setProducts} />
               )}
+
+              {currentPage === 'users' && user?.role === 'ADMIN' && <Users />}
             </>
           )}
         </main>
