@@ -7,12 +7,19 @@ import type { Product } from '../types/Product';
 
 interface ProductsProps {
   products: Product[];
-  addProduct: (product: Product) => void;
+
+  addProduct: (product: Product) => Promise<void>;
+
   editingProduct: Product | null;
-  updateProduct: (product: Product) => void;
+
+  updateProduct: (product: Product) => Promise<void>;
+
   setEditingProduct: (product: Product | null) => void;
-  deleteProduct: (id: number) => void;
+
+  deleteProduct: (id: number) => Promise<void>;
+
   editProduct: (product: Product) => void;
+
   shouldFocusForm?: boolean;
 }
 
@@ -33,7 +40,7 @@ function Products({
       return;
     }
 
-    setTimeout(() => {
+    const timeoutId = window.setTimeout(() => {
       formRef.current?.scrollIntoView({
         behavior: 'smooth',
         block: 'start',
@@ -41,6 +48,10 @@ function Products({
 
       document.getElementById('name')?.focus();
     }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
   }, [shouldFocusForm]);
 
   return (

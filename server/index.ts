@@ -2,6 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import { auth, type AuthenticatedRequest } from './middleware/auth';
 import { prisma } from './lib/prisma';
 
 const app = express();
@@ -39,12 +42,112 @@ const apiLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 
 // =========================
+// Autenticação
+// =========================
+
+app.post('/api/auth/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (
+      typeof email !== 'string' ||
+      email.trim().length === 0
+    ) {
+      return res.status(400).json({
+        error: 'E-mail é obrigatório.',
+      });
+    }
+
+    if (
+      typeof password !== 'string' ||
+      password.length === 0
+    ) {
+      return res.status(400).json({
+        error: 'Senha é obrigatória.',
+      });
+    }
+
+    const secret = process.env.JWT_SECRET;
+
+    if (!secret) {
+      console.error('JWT_SECRET não foi definida.');
+
+      return res.status(500).json({
+        error: 'Configuração de autenticação não encontrada.',
+      });
+    }
+
+    const user = await prisma.user.findUnique({
+      where: {
+        email: email.trim().toLowerCase(),
+      },
+    });
+
+    if (!user) {
+      return res.status(401).json({
+        error: 'E-mail ou senha inválidos.',
+      });
+    }
+
+    const passwordMatches = await bcrypt.compare(
+      password,
+      user.passwordHash
+    );
+
+    if (!passwordMatches) {
+      return res.status(401).json({
+        error: 'E-mail ou senha inválidos.',
+      });
+    }
+
+    const token = jwt.sign(
+      {
+        userId: user.id,
+        role: user.role,
+      },
+      secret,
+      {
+        expiresIn: '8h',
+      }
+    );
+
+    return res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error('ERRO AO REALIZAR LOGIN:', error);
+
+    return res.status(500).json({
+      error: 'Não foi possível realizar o login.',
+    });
+  }
+});
+
+// =========================
 // Teste da API
 // =========================
 
 app.get('/api/test', (_req, res) => {
   res.json({
     message: 'API funcionando!',
+  });
+});
+
+// =========================
+// Rotas protegidas
+// =========================
+
+app.use('/api', auth);
+
+app.get('/api/auth/me', (req: AuthenticatedRequest, res) => {
+  return res.json({
+    user: req.user,
   });
 });
 
@@ -694,7 +797,7 @@ app.post('/api/analisar-estoque', async (req, res) => {
     // =========================
     // Prompt para a IA
     // =========================
-    
+
     const prompt = `
 Você é um assistente de gestão de estoque.
 

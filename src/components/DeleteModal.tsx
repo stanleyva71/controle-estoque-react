@@ -1,12 +1,43 @@
-import { AlertTriangle, Trash2, X } from 'lucide-react';
+import { useState } from 'react';
+
+import {
+  AlertTriangle,
+  Trash2,
+  X,
+  Loader2,
+} from 'lucide-react';
 
 interface DeleteModalProps {
   productName: string;
-  onConfirm: () => void;
+  onConfirm: () => Promise<void>;
   onCancel: () => void;
 }
 
-function DeleteModal({ productName, onConfirm, onCancel }: DeleteModalProps) {
+function DeleteModal({
+  productName,
+  onConfirm,
+  onCancel,
+}: DeleteModalProps) {
+  const [loading, setLoading] = useState(false);
+
+  async function handleConfirm() {
+    if (loading) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await onConfirm();
+    } catch (error) {
+      console.error(
+        'ERRO AO CONFIRMAR EXCLUSÃO:',
+        error
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
   return (
     <div
       className="
@@ -20,6 +51,9 @@ function DeleteModal({ productName, onConfirm, onCancel }: DeleteModalProps) {
         p-4
         backdrop-blur-sm
       "
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="delete-modal-title"
     >
       <div
         className="
@@ -37,6 +71,7 @@ function DeleteModal({ productName, onConfirm, onCancel }: DeleteModalProps) {
           <button
             type="button"
             onClick={onCancel}
+            disabled={loading}
             className="
               rounded-lg
               p-2
@@ -44,6 +79,8 @@ function DeleteModal({ productName, onConfirm, onCancel }: DeleteModalProps) {
               transition
               hover:bg-slate-100
               hover:text-slate-700
+              disabled:cursor-not-allowed
+              disabled:opacity-50
             "
             aria-label="Fechar modal"
           >
@@ -70,7 +107,12 @@ function DeleteModal({ productName, onConfirm, onCancel }: DeleteModalProps) {
 
         {/* Texto */}
         <div className="mt-5 text-center">
-          <h2 className="text-xl font-bold text-slate-900">Excluir produto?</h2>
+          <h2
+            id="delete-modal-title"
+            className="text-xl font-bold text-slate-900"
+          >
+            Excluir produto?
+          </h2>
 
           <p className="mt-3 text-sm leading-6 text-slate-500">
             Você tem certeza que deseja excluir{' '}
@@ -90,6 +132,7 @@ function DeleteModal({ productName, onConfirm, onCancel }: DeleteModalProps) {
           <button
             type="button"
             onClick={onCancel}
+            disabled={loading}
             className="
               rounded-xl
               border
@@ -102,6 +145,8 @@ function DeleteModal({ productName, onConfirm, onCancel }: DeleteModalProps) {
               transition
               hover:bg-slate-50
               active:scale-[0.98]
+              disabled:cursor-not-allowed
+              disabled:opacity-50
             "
           >
             Cancelar
@@ -109,7 +154,8 @@ function DeleteModal({ productName, onConfirm, onCancel }: DeleteModalProps) {
 
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={loading}
             className="
               flex
               items-center
@@ -124,10 +170,24 @@ function DeleteModal({ productName, onConfirm, onCancel }: DeleteModalProps) {
               transition
               hover:bg-red-700
               active:scale-[0.98]
+              disabled:cursor-not-allowed
+              disabled:opacity-60
             "
           >
-            <Trash2 size={18} />
-            Excluir
+            {loading ? (
+              <>
+                <Loader2
+                  size={18}
+                  className="animate-spin"
+                />
+                Excluindo...
+              </>
+            ) : (
+              <>
+                <Trash2 size={18} />
+                Excluir
+              </>
+            )}
           </button>
         </div>
       </div>

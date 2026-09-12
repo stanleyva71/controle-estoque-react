@@ -7,43 +7,63 @@ import Dashboard from './components/Dashboard';
 import StockHistory from './pages/StockHistory';
 import Products from './pages/Products';
 import Categories from './components/Categories';
-
+import Login from './pages/Login';
+import {
+  login,
+  logout,
+  getUser,
+  isAuthenticated,
+  apiFetch,
+  type AuthUser,
+} from './utils/auth';
 import type { Product } from './types/Product';
-
-const API_URL = 'http://localhost:3001/api';
 
 function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [currentPage, setCurrentPage] = useState<
     'dashboard' | 'products' | 'history' | 'categories'
   >('dashboard');
-
   const [toastMessage, setToastMessage] = useState('');
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [focusProductForm, setFocusProductForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [authenticated, setAuthenticated] = useState(isAuthenticated());
+  const [user, setUser] = useState<AuthUser | null>(getUser());
 
   // =========================
   // Carregar produtos do banco
   // =========================
 
   useEffect(() => {
+    if (!authenticated) {
+      setLoading(false);
+      return;
+    }
+
     async function loadProducts() {
       try {
-        const response = await fetch(`${API_URL}/products`);
+        setLoading(true);
+
+        const response = await apiFetch('/products');
+
+        if (response.status === 401) {
+          handleLogout();
+          return;
+        }
 
         if (!response.ok) {
           throw new Error('Não foi possível carregar os produtos.');
         }
 
         const data: Product[] = await response.json();
-
         setProducts(data);
       } catch (error) {
         console.error('ERRO AO CARREGAR PRODUTOS:', error);
 
         setToastMessage(
-          'Não foi possível carregar os produtos do banco de dados.',
+          error instanceof Error
+            ? error.message
+            : 'Não foi possível carregar os produtos do banco de dados.'
         );
       } finally {
         setLoading(false);
@@ -51,7 +71,25 @@ function App() {
     }
 
     loadProducts();
-  }, []);
+  }, [authenticated]);
+
+  // =========================
+  // Autenticação
+  // =========================
+
+  async function handleLogin(email: string, password: string) {
+    const data = await login(email, password);
+
+    setUser(data.user);
+    setAuthenticated(true);
+  }
+
+  function handleLogout() {
+    logout();
+
+    setUser(null);
+    setAuthenticated(false);
+  }
 
   // =========================
   // Criar produto
@@ -59,7 +97,7 @@ function App() {
 
   async function addProduct(product: Product) {
     try {
-      const response = await fetch(`${API_URL}/products`, {
+      const response = await apiFetch('/products', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -79,10 +117,7 @@ function App() {
         throw new Error(data.error || 'Não foi possível criar o produto.');
       }
 
-      setProducts((currentProducts) => [
-        data,
-        ...currentProducts,
-      ]);
+      setProducts((currentProducts) => [data, ...currentProducts]);
 
       setToastMessage(`"${data.name}" foi adicionado com sucesso!`);
     } catch (error) {
@@ -91,7 +126,7 @@ function App() {
       setToastMessage(
         error instanceof Error
           ? error.message
-          : 'Não foi possível criar o produto.',
+          : 'Não foi possível criar o produto.'
       );
     }
   }
@@ -101,12 +136,10 @@ function App() {
   // =========================
 
   async function deleteProduct(id: number) {
-    const productToDelete = products.find(
-      (product) => product.id === id,
-    );
+    const productToDelete = products.find((product) => product.id === id);
 
     try {
-      const response = await fetch(`${API_URL}/products/${id}`, {
+      const response = await apiFetch(`/products/${id}`, {
         method: 'DELETE',
       });
 
@@ -117,13 +150,11 @@ function App() {
       }
 
       setProducts((currentProducts) =>
-        currentProducts.filter((product) => product.id !== id),
+        currentProducts.filter((product) => product.id !== id)
       );
 
       if (productToDelete) {
-        setToastMessage(
-          `"${productToDelete.name}" foi excluído com sucesso!`,
-        );
+        setToastMessage(`"${productToDelete.name}" foi excluído com sucesso!`);
       }
     } catch (error) {
       console.error('ERRO AO EXCLUIR PRODUTO:', error);
@@ -131,7 +162,7 @@ function App() {
       setToastMessage(
         error instanceof Error
           ? error.message
-          : 'Não foi possível excluir o produto.',
+          : 'Não foi possível excluir o produto.'
       );
     }
   }
@@ -152,35 +183,30 @@ function App() {
 
   async function updateProduct(updatedProduct: Product) {
     try {
-      const response = await fetch(
-        `${API_URL}/products/${updatedProduct.id}`,
-        {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: updatedProduct.name,
-            category: updatedProduct.category,
-            quantity: updatedProduct.quantity,
-            price: updatedProduct.price,
-            image: updatedProduct.image,
-          }),
+      const response = await apiFetch(`/products/${updatedProduct.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      );
+        body: JSON.stringify({
+          name: updatedProduct.name,
+          category: updatedProduct.category,
+          quantity: updatedProduct.quantity,
+          price: updatedProduct.price,
+          image: updatedProduct.image,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || 'Não foi possível atualizar o produto.',
-        );
+        throw new Error(data.error || 'Não foi possível atualizar o produto.');
       }
 
       setProducts((currentProducts) =>
         currentProducts.map((product) =>
-          product.id === data.id ? data : product,
-        ),
+          product.id === data.id ? data : product
+        )
       );
 
       setEditingProduct(null);
@@ -191,18 +217,19 @@ function App() {
       setToastMessage(
         error instanceof Error
           ? error.message
-          : 'Não foi possível atualizar o produto.',
+          : 'Não foi possível atualizar o produto.'
       );
     }
+  }
+
+  if (!authenticated) {
+    return <Login onLogin={handleLogin} />;
   }
 
   return (
     <div className="min-h-screen bg-slate-100 lg:flex">
       {toastMessage && (
-        <Toast
-          message={toastMessage}
-          onClose={() => setToastMessage('')}
-        />
+        <Toast message={toastMessage} onClose={() => setToastMessage('')} />
       )}
 
       <Sidebar
@@ -231,20 +258,16 @@ function App() {
       />
 
       <div className="min-w-0 flex-1">
-        <Header />
+        <Header user={user} onLogout={handleLogout} />
 
         <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
           {loading ? (
             <div className="flex min-h-[300px] items-center justify-center">
-              <p className="text-sm text-slate-500">
-                Carregando produtos...
-              </p>
+              <p className="text-sm text-slate-500">Carregando produtos...</p>
             </div>
           ) : (
             <>
-              {currentPage === 'dashboard' && (
-                <Dashboard products={products} />
-              )}
+              {currentPage === 'dashboard' && <Dashboard products={products} />}
 
               {currentPage === 'products' && (
                 <Products
@@ -262,10 +285,7 @@ function App() {
               {currentPage === 'history' && <StockHistory />}
 
               {currentPage === 'categories' && (
-                <Categories
-                  products={products}
-                  updateProducts={setProducts}
-                />
+                <Categories products={products} updateProducts={setProducts} />
               )}
             </>
           )}

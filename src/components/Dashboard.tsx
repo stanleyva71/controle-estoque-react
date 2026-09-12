@@ -11,7 +11,11 @@ import {
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
+
 import { useEffect, useState } from 'react';
+import type { ReactNode, KeyboardEvent } from 'react';
+
+import { apiFetch } from '../utils/auth';
 
 import type { Product } from '../types/Product';
 
@@ -54,55 +58,61 @@ function cleanAIResponse(content: string): string {
  * Componentes usados pelo ReactMarkdown.
  */
 const markdownComponents = {
-  h1: ({ children }: { children?: React.ReactNode }) => (
+  h1: ({ children }: { children?: ReactNode }) => (
     <h1 className="mb-3 mt-2 text-lg font-bold text-slate-800">
       {children}
     </h1>
   ),
 
-  h2: ({ children }: { children?: React.ReactNode }) => (
+  h2: ({ children }: { children?: ReactNode }) => (
     <h2 className="mb-2 mt-5 text-base font-bold text-slate-800 first:mt-0">
       {children}
     </h2>
   ),
 
-  h3: ({ children }: { children?: React.ReactNode }) => (
+  h3: ({ children }: { children?: ReactNode }) => (
     <h3 className="mb-2 mt-4 text-sm font-bold text-slate-800 first:mt-0">
       {children}
     </h3>
   ),
 
-  p: ({ children }: { children?: React.ReactNode }) => (
+  p: ({ children }: { children?: ReactNode }) => (
     <p className="mb-3 leading-6 last:mb-0">{children}</p>
   ),
 
-  ul: ({ children }: { children?: React.ReactNode }) => (
-    <ul className="mb-3 list-disc space-y-1 pl-5">{children}</ul>
+  ul: ({ children }: { children?: ReactNode }) => (
+    <ul className="mb-3 list-disc space-y-1 pl-5">
+      {children}
+    </ul>
   ),
 
-  ol: ({ children }: { children?: React.ReactNode }) => (
-    <ol className="mb-3 list-decimal space-y-1 pl-5">{children}</ol>
+  ol: ({ children }: { children?: ReactNode }) => (
+    <ol className="mb-3 list-decimal space-y-1 pl-5">
+      {children}
+    </ol>
   ),
 
-  li: ({ children }: { children?: React.ReactNode }) => (
+  li: ({ children }: { children?: ReactNode }) => (
     <li className="leading-6">{children}</li>
   ),
 
-  strong: ({ children }: { children?: React.ReactNode }) => (
-    <strong className="font-semibold text-slate-900">{children}</strong>
+  strong: ({ children }: { children?: ReactNode }) => (
+    <strong className="font-semibold text-slate-900">
+      {children}
+    </strong>
   ),
 
-  em: ({ children }: { children?: React.ReactNode }) => (
+  em: ({ children }: { children?: ReactNode }) => (
     <em className="italic">{children}</em>
   ),
 
-  blockquote: ({ children }: { children?: React.ReactNode }) => (
+  blockquote: ({ children }: { children?: ReactNode }) => (
     <blockquote className="my-3 border-l-4 border-blue-300 pl-4 italic text-slate-600">
       {children}
     </blockquote>
   ),
 
-  code: ({ children }: { children?: React.ReactNode }) => (
+  code: ({ children }: { children?: ReactNode }) => (
     <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs text-slate-700">
       {children}
     </code>
@@ -141,7 +151,10 @@ function Dashboard({ products }: DashboardProps) {
 
       return parsed.messages;
     } catch (error) {
-      console.error('Erro ao carregar conversa salva:', error);
+      console.error(
+        'Erro ao carregar conversa salva:',
+        error
+      );
 
       localStorage.removeItem(CHAT_STORAGE_KEY);
 
@@ -162,7 +175,8 @@ function Dashboard({ products }: DashboardProps) {
   ).size;
 
   const totalStockValue = products.reduce(
-    (total, product) => total + product.quantity * product.price,
+    (total, product) =>
+      total + product.quantity * product.price,
     0
   );
 
@@ -181,20 +195,21 @@ function Dashboard({ products }: DashboardProps) {
         JSON.stringify(storedChat)
       );
     } catch (error) {
-      console.error('Erro ao salvar conversa:', error);
+      console.error(
+        'Erro ao salvar conversa:',
+        error
+      );
     }
   }, [messages]);
 
   /**
    * Verifica periodicamente se a conversa expirou.
-   *
-   * Isso permite que uma conversa seja apagada mesmo
-   * enquanto o Dashboard permanece aberto.
    */
   useEffect(() => {
     const expirationCheck = window.setInterval(() => {
       try {
-        const stored = localStorage.getItem(CHAT_STORAGE_KEY);
+        const stored =
+          localStorage.getItem(CHAT_STORAGE_KEY);
 
         if (!stored) {
           return;
@@ -224,18 +239,23 @@ function Dashboard({ products }: DashboardProps) {
 
   function clearConversation() {
     localStorage.removeItem(CHAT_STORAGE_KEY);
+
     setMessages([INITIAL_MESSAGE]);
     setQuestion('');
   }
 
   async function analyzeStock() {
+    if (loadingAnalysis || products.length === 0) {
+      return;
+    }
+
     try {
       setLoadingAnalysis(true);
       setAnalysis('');
       setAnalysisError('');
 
-      const response = await fetch(
-        'http://localhost:3001/api/analisar-estoque',
+      const response = await apiFetch(
+        '/analisar-estoque',
         {
           method: 'POST',
           headers: {
@@ -261,7 +281,10 @@ function Dashboard({ products }: DashboardProps) {
           : 'A análise não retornou uma resposta válida.'
       );
     } catch (error) {
-      console.error('Erro ao analisar estoque:', error);
+      console.error(
+        'Erro ao analisar estoque:',
+        error
+      );
 
       setAnalysisError(
         error instanceof Error
@@ -289,14 +312,17 @@ function Dashboard({ products }: DashboardProps) {
       content: trimmedQuestion,
     };
 
-    setMessages((prev) => [...prev, userMessage]);
+    setMessages((prev) => [
+      ...prev,
+      userMessage,
+    ]);
 
     setQuestion('');
     setLoadingChat(true);
 
     try {
-      const response = await fetch(
-        'http://localhost:3001/api/chat-estoque',
+      const response = await apiFetch(
+        '/chat-estoque',
         {
           method: 'POST',
           headers: {
@@ -330,7 +356,10 @@ function Dashboard({ products }: DashboardProps) {
         assistantMessage,
       ]);
     } catch (error) {
-      console.error('Erro no chat:', error);
+      console.error(
+        'Erro no chat:',
+        error
+      );
 
       const errorMessage: ChatMessage = {
         role: 'assistant',
@@ -350,9 +379,10 @@ function Dashboard({ products }: DashboardProps) {
   }
 
   function handleKeyDown(
-    event: React.KeyboardEvent<HTMLInputElement>
+    event: KeyboardEvent<HTMLInputElement>
   ) {
     if (event.key === 'Enter') {
+      event.preventDefault();
       sendQuestion();
     }
   }
@@ -439,10 +469,13 @@ function Dashboard({ products }: DashboardProps) {
             </p>
 
             <p className="mt-1 text-2xl font-bold text-slate-800">
-              {totalStockValue.toLocaleString('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-              })}
+              {totalStockValue.toLocaleString(
+                'pt-BR',
+                {
+                  style: 'currency',
+                  currency: 'BRL',
+                }
+              )}
             </p>
 
             <p className="mt-1 text-sm text-slate-400">
@@ -460,7 +493,10 @@ function Dashboard({ products }: DashboardProps) {
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <Bot size={24} className="text-blue-600" />
+              <Bot
+                size={24}
+                className="text-blue-600"
+              />
 
               <h2 className="text-xl font-bold text-slate-800">
                 Assistente inteligente de estoque
@@ -476,7 +512,10 @@ function Dashboard({ products }: DashboardProps) {
           <button
             type="button"
             onClick={clearConversation}
-            disabled={messages.length <= 1 && !loadingChat}
+            disabled={
+              messages.length <= 1 &&
+              !loadingChat
+            }
             className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
             title="Limpar conversa"
           >
@@ -523,7 +562,9 @@ function Dashboard({ products }: DashboardProps) {
                       <ReactMarkdown
                         components={markdownComponents}
                       >
-                        {cleanAIResponse(message.content)}
+                        {cleanAIResponse(
+                          message.content
+                        )}
                       </ReactMarkdown>
                     </div>
                   ) : (
@@ -542,7 +583,6 @@ function Dashboard({ products }: DashboardProps) {
                     size={18}
                     className="animate-spin"
                   />
-
                   Analisando...
                 </div>
               </div>
@@ -553,8 +593,8 @@ function Dashboard({ products }: DashboardProps) {
         {/* Campo de pergunta */}
         {products.length === 0 ? (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-            Cadastre pelo menos um produto para conversar com
-            a IA.
+            Cadastre pelo menos um produto para conversar
+            com a IA.
           </div>
         ) : (
           <div className="mt-4 flex gap-3">
@@ -574,7 +614,8 @@ function Dashboard({ products }: DashboardProps) {
               type="button"
               onClick={sendQuestion}
               disabled={
-                !question.trim() || loadingChat
+                !question.trim() ||
+                loadingChat
               }
               className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -609,7 +650,6 @@ function Dashboard({ products }: DashboardProps) {
                   size={18}
                   className="animate-spin"
                 />
-
                 Gerando análise...
               </>
             ) : (

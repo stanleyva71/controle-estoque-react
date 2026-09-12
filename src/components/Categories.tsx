@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 
 import DeleteModal from './DeleteModal';
-
+import { apiFetch } from '../utils/auth';
 import type { Category } from '../types/Category';
 import type { Product } from '../types/Product';
 
@@ -20,8 +20,6 @@ interface CategoriesProps {
   products: Product[];
   updateProducts: (products: Product[]) => void;
 }
-
-const API_URL = 'http://localhost:3001/api';
 
 function Categories({ products, updateProducts }: CategoriesProps) {
   const [categories, setCategories] = useState<Category[]>([]);
@@ -46,7 +44,7 @@ function Categories({ products, updateProducts }: CategoriesProps) {
         setLoading(true);
         setError('');
 
-        const response = await fetch(`${API_URL}/categories`);
+        const response = await apiFetch('/categories');
         const data = await response.json();
 
         if (!response.ok) {
@@ -127,18 +125,15 @@ function Categories({ products, updateProducts }: CategoriesProps) {
       if (editingCategory) {
         const oldName = editingCategory.name;
 
-        const response = await fetch(
-          `${API_URL}/categories/${editingCategory.id}`,
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              name: trimmedName,
-            }),
-          }
-        );
+        const response = await apiFetch(`/categories/${editingCategory.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: trimmedName,
+          }),
+        });
 
         const data = await response.json();
 
@@ -166,7 +161,7 @@ function Categories({ products, updateProducts }: CategoriesProps) {
           )
         );
       } else {
-        const response = await fetch(`${API_URL}/categories`, {
+        const response = await apiFetch('/categories', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -214,12 +209,9 @@ function Categories({ products, updateProducts }: CategoriesProps) {
     try {
       setError('');
 
-      const response = await fetch(
-        `${API_URL}/categories/${categoryToDelete.id}`,
-        {
-          method: 'DELETE',
-        }
-      );
+      const response = await apiFetch(`/categories/${categoryToDelete.id}`, {
+        method: 'DELETE',
+      });
 
       const data = await response.json();
 

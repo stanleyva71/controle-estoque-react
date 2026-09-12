@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
+import { apiFetch } from '../utils/auth';
+
 import {
   exportMovementsToCSV,
   exportMovementsToPDF,
@@ -24,8 +26,6 @@ import type {
   StockMovement,
 } from '../types/StockMovement';
 
-const API_URL = 'http://localhost:3001/api';
-
 function StockHistory() {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [selectedType, setSelectedType] = useState<
@@ -43,43 +43,42 @@ function StockHistory() {
   // =========================
 
   useEffect(() => {
-    async function loadMovements() {
-      try {
-        setLoading(true);
-        setError('');
+  async function loadMovements() {
+    try {
+      setLoading(true);
+      setError('');
 
-        const response = await fetch(`${API_URL}/movements`);
+      const response = await apiFetch('/movements');
+      const data = await response.json();
 
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(
-            data.error || 'Não foi possível carregar o histórico.',
-          );
-        }
-
-        const sortedMovements = [...data].sort(
-          (a: StockMovement, b: StockMovement) =>
-            new Date(b.date).getTime() -
-            new Date(a.date).getTime(),
+      if (!response.ok) {
+        throw new Error(
+          data.error || 'Não foi possível carregar o histórico.',
         );
-
-        setMovements(sortedMovements);
-      } catch (error) {
-        console.error('ERRO AO CARREGAR HISTÓRICO:', error);
-
-        setError(
-          error instanceof Error
-            ? error.message
-            : 'Não foi possível carregar o histórico.',
-        );
-      } finally {
-        setLoading(false);
       }
-    }
 
-    loadMovements();
-  }, []);
+      const sortedMovements = [...data].sort(
+        (a: StockMovement, b: StockMovement) =>
+          new Date(b.date).getTime() -
+          new Date(a.date).getTime(),
+      );
+
+      setMovements(sortedMovements);
+    } catch (error) {
+      console.error('ERRO AO CARREGAR HISTÓRICO:', error);
+
+      setError(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível carregar o histórico.',
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  loadMovements();
+}, []);
 
   // =========================
   // Configuração dos movimentos
