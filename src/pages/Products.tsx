@@ -4,23 +4,18 @@ import ProductForm from '../components/ProductForm';
 import ProductList from '../components/ProductList';
 
 import type { Product } from '../types/Product';
+import type { AuthUser } from '../utils/auth';
 
 interface ProductsProps {
   products: Product[];
-
   addProduct: (product: Product) => Promise<void>;
-
   editingProduct: Product | null;
-
   updateProduct: (product: Product) => Promise<void>;
-
   setEditingProduct: (product: Product | null) => void;
-
   deleteProduct: (id: number) => Promise<void>;
-
   editProduct: (product: Product) => void;
-
   shouldFocusForm?: boolean;
+  user: AuthUser | null;
 }
 
 function Products({
@@ -32,11 +27,19 @@ function Products({
   deleteProduct,
   editProduct,
   shouldFocusForm = false,
+  user,
 }: ProductsProps) {
   const formRef = useRef<HTMLDivElement>(null);
 
+  const canEdit =
+    user?.role === 'ADMIN' ||
+    user?.role === 'OPERADOR';
+
+  const canDelete =
+    user?.role === 'ADMIN';
+
   useEffect(() => {
-    if (!shouldFocusForm) {
+    if (!shouldFocusForm || !canEdit) {
       return;
     }
 
@@ -52,7 +55,7 @@ function Products({
     return () => {
       window.clearTimeout(timeoutId);
     };
-  }, [shouldFocusForm]);
+  }, [shouldFocusForm, canEdit]);
 
   return (
     <section>
@@ -62,25 +65,37 @@ function Products({
         </h2>
 
         <p className="mt-1 text-sm text-slate-500">
-          Cadastre e gerencie os produtos do seu estoque.
+          {canEdit
+            ? 'Cadastre e gerencie os produtos do seu estoque.'
+            : 'Consulte os produtos cadastrados no estoque.'}
         </p>
       </div>
 
-      <div className="grid grid-cols-1 items-start gap-8 2xl:grid-cols-[380px_minmax(0,1fr)]">
-        <div ref={formRef}>
-          <ProductForm
-            key={editingProduct?.id ?? 'new'}
-            addProduct={addProduct}
-            editingProduct={editingProduct}
-            updateProduct={updateProduct}
-            setEditingProduct={setEditingProduct}
-          />
-        </div>
+      <div
+        className={
+          canEdit
+            ? 'grid grid-cols-1 items-start gap-8 2xl:grid-cols-[380px_minmax(0,1fr)]'
+            : 'grid grid-cols-1'
+        }
+      >
+        {canEdit && (
+          <div ref={formRef}>
+            <ProductForm
+              key={editingProduct?.id ?? 'new'}
+              addProduct={addProduct}
+              editingProduct={editingProduct}
+              updateProduct={updateProduct}
+              setEditingProduct={setEditingProduct}
+            />
+          </div>
+        )}
 
         <ProductList
           products={products}
           deleteProduct={deleteProduct}
           editProduct={editProduct}
+          canEdit={canEdit}
+          canDelete={canDelete}
         />
       </div>
     </section>

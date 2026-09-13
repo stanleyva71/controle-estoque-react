@@ -12,7 +12,12 @@ interface LoginResponse {
 
 const TOKEN_KEY = 'estoque-auth-token';
 const USER_KEY = 'estoque-auth-user';
+
 const API_URL = 'http://localhost:3001/api';
+
+// =========================
+// Login
+// =========================
 
 export async function login(
   email: string,
@@ -46,7 +51,10 @@ export async function login(
     );
   }
 
-  localStorage.setItem(TOKEN_KEY, data.token);
+  localStorage.setItem(
+    TOKEN_KEY,
+    data.token
+  );
 
   localStorage.setItem(
     USER_KEY,
@@ -56,36 +64,61 @@ export async function login(
   return data;
 }
 
+// =========================
+// Token
+// =========================
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
 
+// =========================
+// Usuário
+// =========================
+
 export function getUser(): AuthUser | null {
-  const storedUser = localStorage.getItem(USER_KEY);
+  const storedUser =
+    localStorage.getItem(USER_KEY);
 
   if (!storedUser) {
     return null;
   }
 
   try {
-    return JSON.parse(storedUser) as AuthUser;
+    return JSON.parse(
+      storedUser
+    ) as AuthUser;
   } catch {
     localStorage.removeItem(USER_KEY);
+
     return null;
   }
 }
+
+// =========================
+// Logout
+// =========================
 
 export function logout(): void {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);
 }
 
+// =========================
+// Verificar autenticação
+// =========================
+
 export function isAuthenticated(): boolean {
   return Boolean(getToken());
 }
 
+// =========================
+// Requisições autenticadas
+// =========================
+
 /**
- * Realiza requisições à API enviando automaticamente
+ * Realiza requisições à API
+ * enviando automaticamente
  * o token JWT.
  */
 export async function apiFetch(
@@ -94,26 +127,32 @@ export async function apiFetch(
 ): Promise<Response> {
   const token = getToken();
 
-  const headers = new Headers(options.headers);
-
-  if (token) {
-    headers.set(
-      'Authorization',
-      `Bearer ${token}`
-    );
-  }
-
   const response = await fetch(
     `${API_URL}${endpoint}`,
     {
       ...options,
-      headers,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+        ...(token
+          ? {
+              Authorization: `Bearer ${token}`,
+            }
+          : {}),
+      },
     }
   );
 
-  // Token inválido ou expirado.
+  // =========================
+  // Sessão expirada/inválida
+  // =========================
+
   if (response.status === 401) {
     logout();
+
+    window.dispatchEvent(
+      new Event('auth:logout')
+    );
   }
 
   return response;

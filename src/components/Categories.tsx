@@ -12,7 +12,9 @@ import {
 } from 'lucide-react';
 
 import DeleteModal from './DeleteModal';
+
 import { apiFetch } from '../utils/auth';
+
 import type { Category } from '../types/Category';
 import type { Product } from '../types/Product';
 
@@ -21,20 +23,31 @@ interface CategoriesProps {
   updateProducts: (products: Product[]) => void;
 }
 
-function Categories({ products, updateProducts }: CategoriesProps) {
+function Categories({
+  products,
+  updateProducts,
+}: CategoriesProps) {
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoryToDelete, setCategoryToDelete] = useState<Category | null>(
-    null
-  );
+
+  const [categoryToDelete, setCategoryToDelete] =
+    useState<Category | null>(null);
 
   const [search, setSearch] = useState('');
+
   const [categoryName, setCategoryName] = useState('');
-  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+  const [editingCategory, setEditingCategory] =
+    useState<Category | null>(null);
 
   const [error, setError] = useState('');
+
   const [showForm, setShowForm] = useState(false);
+
   const [loading, setLoading] = useState(true);
 
+  // =========================
+  // Carregar categorias
+  // =========================
 
   useEffect(() => {
     let cancelled = false;
@@ -45,11 +58,13 @@ function Categories({ products, updateProducts }: CategoriesProps) {
         setError('');
 
         const response = await apiFetch('/categories');
+
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.error || 'Não foi possível carregar as categorias.'
+            data.error ||
+              'Não foi possível carregar as categorias.'
           );
         }
 
@@ -57,7 +72,10 @@ function Categories({ products, updateProducts }: CategoriesProps) {
           setCategories(data);
         }
       } catch (error) {
-        console.error('ERRO AO CARREGAR CATEGORIAS:', error);
+        console.error(
+          'ERRO AO CARREGAR CATEGORIAS:',
+          error
+        );
 
         if (!cancelled) {
           setError(
@@ -109,7 +127,9 @@ function Categories({ products, updateProducts }: CategoriesProps) {
   // Criar / editar
   // =========================
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: React.FormEvent<HTMLFormElement>
+  ) {
     event.preventDefault();
 
     const trimmedName = categoryName.trim();
@@ -125,64 +145,87 @@ function Categories({ products, updateProducts }: CategoriesProps) {
       if (editingCategory) {
         const oldName = editingCategory.name;
 
-        const response = await apiFetch(`/categories/${editingCategory.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: trimmedName,
-          }),
-        });
+        const response = await apiFetch(
+          `/categories/${editingCategory.id}`,
+          {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: trimmedName,
+            }),
+          }
+        );
 
         const data = await response.json();
 
         if (!response.ok) {
           throw new Error(
-            data.error || 'Não foi possível atualizar a categoria.'
+            data.error ||
+              'Não foi possível atualizar a categoria.'
           );
         }
 
         // Sincroniza o estado dos produtos no frontend.
-        const updatedProducts = products.map((product) =>
-          product.category.toLowerCase() === oldName.toLowerCase()
-            ? {
-                ...product,
-                category: data.name,
-              }
-            : product
+        const updatedProducts = products.map(
+          (product) =>
+            product.category.toLowerCase() ===
+            oldName.toLowerCase()
+              ? {
+                  ...product,
+                  category: data.name,
+                }
+              : product
         );
 
         updateProducts(updatedProducts);
 
-        setCategories((currentCategories) =>
-          currentCategories.map((category) =>
-            category.id === data.id ? data : category
-          )
+        setCategories(
+          (currentCategories) =>
+            currentCategories.map((category) =>
+              category.id === data.id
+                ? data
+                : category
+            )
         );
       } else {
-        const response = await apiFetch('/categories', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: trimmedName,
-          }),
-        });
+        const response = await apiFetch(
+          '/categories',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              name: trimmedName,
+            }),
+          }
+        );
 
         const data = await response.json();
 
         if (!response.ok) {
-          throw new Error(data.error || 'Não foi possível criar a categoria.');
+          throw new Error(
+            data.error ||
+              'Não foi possível criar a categoria.'
+          );
         }
 
-        setCategories((currentCategories) => [...currentCategories, data]);
+        setCategories(
+          (currentCategories) => [
+            ...currentCategories,
+            data,
+          ]
+        );
       }
 
       closeForm();
     } catch (error) {
-      console.error('ERRO AO SALVAR CATEGORIA:', error);
+      console.error(
+        'ERRO AO SALVAR CATEGORIA:',
+        error
+      );
 
       setError(
         error instanceof Error
@@ -209,25 +252,36 @@ function Categories({ products, updateProducts }: CategoriesProps) {
     try {
       setError('');
 
-      const response = await apiFetch(`/categories/${categoryToDelete.id}`, {
-        method: 'DELETE',
-      });
+      const response = await apiFetch(
+        `/categories/${categoryToDelete.id}`,
+        {
+          method: 'DELETE',
+        }
+      );
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Não foi possível excluir a categoria.');
+        throw new Error(
+          data.error ||
+            'Não foi possível excluir a categoria.'
+        );
       }
 
-      setCategories((currentCategories) =>
-        currentCategories.filter(
-          (category) => category.id !== categoryToDelete.id
-        )
+      setCategories(
+        (currentCategories) =>
+          currentCategories.filter(
+            (category) =>
+              category.id !== categoryToDelete.id
+          )
       );
 
       setCategoryToDelete(null);
     } catch (error) {
-      console.error('ERRO AO EXCLUIR CATEGORIA:', error);
+      console.error(
+        'ERRO AO EXCLUIR CATEGORIA:',
+        error
+      );
 
       setError(
         error instanceof Error
@@ -243,19 +297,26 @@ function Categories({ products, updateProducts }: CategoriesProps) {
   // Filtro
   // =========================
 
-  const filteredCategories = categories.filter((category) =>
-    category.name.toLowerCase().includes(search.toLowerCase())
+  const filteredCategories = categories.filter(
+    (category) =>
+      category.name
+        .toLowerCase()
+        .includes(search.toLowerCase())
   );
 
   function getProductCount(categoryName: string) {
     return products.filter(
-      (product) => product.category.toLowerCase() === categoryName.toLowerCase()
+      (product) =>
+        product.category.toLowerCase() ===
+        categoryName.toLowerCase()
     ).length;
   }
 
-  const categoriesWithoutProducts = categories.filter(
-    (category) => getProductCount(category.name) === 0
-  ).length;
+  const categoriesWithoutProducts =
+    categories.filter(
+      (category) =>
+        getProductCount(category.name) === 0
+    ).length;
 
   // =========================
   // Loading
@@ -286,7 +347,9 @@ function Categories({ products, updateProducts }: CategoriesProps) {
       {categoryToDelete && (
         <DeleteModal
           productName={categoryToDelete.name}
-          onCancel={() => setCategoryToDelete(null)}
+          onCancel={() =>
+            setCategoryToDelete(null)
+          }
           onConfirm={confirmDelete}
         />
       )}
@@ -301,7 +364,9 @@ function Categories({ products, updateProducts }: CategoriesProps) {
             </div>
 
             <div>
-              <h2 className="text-xl font-bold text-slate-800">Categorias</h2>
+              <h2 className="text-xl font-bold text-slate-800">
+                Categorias
+              </h2>
 
               <p className="mt-1 text-sm text-slate-500">
                 Organize os produtos do seu estoque.
@@ -323,7 +388,9 @@ function Categories({ products, updateProducts }: CategoriesProps) {
 
         {error && !showForm && (
           <div className="mb-5 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3">
-            <p className="text-sm font-medium text-red-600">{error}</p>
+            <p className="text-sm font-medium text-red-600">
+              {error}
+            </p>
 
             <button
               type="button"
@@ -382,7 +449,9 @@ function Categories({ products, updateProducts }: CategoriesProps) {
             type="text"
             placeholder="Buscar categoria..."
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) =>
+              setSearch(event.target.value)
+            }
             className="w-full rounded-xl border border-slate-300 bg-slate-50 py-3 pl-11 pr-4 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
           />
         </div>
@@ -394,7 +463,9 @@ function Categories({ products, updateProducts }: CategoriesProps) {
             <div className="mb-4 flex items-center justify-between">
               <div>
                 <h3 className="font-bold text-slate-800">
-                  {editingCategory ? 'Editar categoria' : 'Nova categoria'}
+                  {editingCategory
+                    ? 'Editar categoria'
+                    : 'Nova categoria'}
                 </h3>
 
                 <p className="mt-1 text-sm text-slate-500">
@@ -420,7 +491,11 @@ function Categories({ products, updateProducts }: CategoriesProps) {
                 type="text"
                 placeholder="Ex: Periféricos"
                 value={categoryName}
-                onChange={(event) => setCategoryName(event.target.value)}
+                onChange={(event) =>
+                  setCategoryName(
+                    event.target.value
+                  )
+                }
                 autoFocus
                 className="flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
               />
@@ -430,7 +505,10 @@ function Categories({ products, updateProducts }: CategoriesProps) {
                 className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700"
               >
                 <Save size={18} />
-                {editingCategory ? 'Salvar' : 'Criar'}
+
+                {editingCategory
+                  ? 'Salvar'
+                  : 'Criar'}
               </button>
 
               <button
@@ -443,7 +521,9 @@ function Categories({ products, updateProducts }: CategoriesProps) {
             </form>
 
             {error && (
-              <p className="mt-3 text-sm font-medium text-red-600">{error}</p>
+              <p className="mt-3 text-sm font-medium text-red-600">
+                {error}
+              </p>
             )}
           </div>
         )}
@@ -493,63 +573,85 @@ function Categories({ products, updateProducts }: CategoriesProps) {
                 </thead>
 
                 <tbody>
-                  {filteredCategories.map((category) => {
-                    const productCount = getProductCount(category.name);
+                  {filteredCategories.map(
+                    (category) => {
+                      const productCount =
+                        getProductCount(
+                          category.name
+                        );
 
-                    return (
-                      <tr
-                        key={category.id}
-                        className="border-b border-slate-100 transition hover:bg-slate-50"
-                      >
-                        <td className="px-5 py-4">
-                          <div className="flex items-center gap-3">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                              <FolderTree size={18} />
+                      return (
+                        <tr
+                          key={category.id}
+                          className="border-b border-slate-100 transition hover:bg-slate-50"
+                        >
+                          <td className="px-5 py-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                                <FolderTree
+                                  size={18}
+                                />
+                              </div>
+
+                              <span className="font-semibold text-slate-800">
+                                {category.name}
+                              </span>
                             </div>
+                          </td>
 
-                            <span className="font-semibold text-slate-800">
-                              {category.name}
+                          <td className="px-5 py-4">
+                            <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700">
+                              <Package size={15} />
+                              {productCount}
                             </span>
-                          </div>
-                        </td>
+                          </td>
 
-                        <td className="px-5 py-4">
-                          <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700">
-                            <Package size={15} />
-                            {productCount}
-                          </span>
-                        </td>
+                          <td className="px-5 py-4 text-sm text-slate-500">
+                            {new Intl.DateTimeFormat(
+                              'pt-BR',
+                              {
+                                dateStyle: 'short',
+                              }
+                            ).format(
+                              new Date(
+                                category.createdAt
+                              )
+                            )}
+                          </td>
 
-                        <td className="px-5 py-4 text-sm text-slate-500">
-                          {new Intl.DateTimeFormat('pt-BR', {
-                            dateStyle: 'short',
-                          }).format(new Date(category.createdAt))}
-                        </td>
+                          <td className="px-5 py-4">
+                            <div className="flex justify-end gap-2">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openEditForm(
+                                    category
+                                  )
+                                }
+                                className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition hover:bg-blue-100"
+                                title="Editar categoria"
+                              >
+                                <Pencil size={18} />
+                              </button>
 
-                        <td className="px-5 py-4">
-                          <div className="flex justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => openEditForm(category)}
-                              className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition hover:bg-blue-100"
-                              title="Editar categoria"
-                            >
-                              <Pencil size={18} />
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleDelete(category)}
-                              className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100"
-                              title="Excluir categoria"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  handleDelete(
+                                    category
+                                  )
+                                }
+                                className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100"
+                                title="Excluir categoria"
+                              >
+                                <Trash2 size={18} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    }
+                  )}
                 </tbody>
               </table>
             </div>

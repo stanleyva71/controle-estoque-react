@@ -30,6 +30,19 @@ function App() {
   const [authenticated, setAuthenticated] = useState(isAuthenticated());
   const [user, setUser] = useState<AuthUser | null>(getUser());
 
+  useEffect(() => {
+    function handleAuthLogout() {
+      setUser(null);
+      setAuthenticated(false);
+    }
+
+    window.addEventListener('auth:logout', handleAuthLogout);
+
+    return () => {
+      window.removeEventListener('auth:logout', handleAuthLogout);
+    };
+  }, []);
+
   // =========================
   // Carregar produtos do banco
   // =========================
@@ -45,11 +58,6 @@ function App() {
         setLoading(true);
 
         const response = await apiFetch('/products');
-
-        if (response.status === 401) {
-          handleLogout();
-          return;
-        }
 
         if (!response.ok) {
           throw new Error('Não foi possível carregar os produtos.');
@@ -231,10 +239,7 @@ function App() {
   return (
     <div className="min-h-screen bg-slate-100 lg:flex">
       {toastMessage && (
-        <Toast
-          message={toastMessage}
-          onClose={() => setToastMessage('')}
-        />
+        <Toast message={toastMessage} onClose={() => setToastMessage('')} />
       )}
 
       <Sidebar
@@ -290,6 +295,7 @@ function App() {
                   deleteProduct={deleteProduct}
                   editProduct={editProduct}
                   shouldFocusForm={focusProductForm}
+                  user={user}
                 />
               )}
 
@@ -299,7 +305,9 @@ function App() {
                 <Categories products={products} updateProducts={setProducts} />
               )}
 
-              {currentPage === 'users' && user?.role === 'ADMIN' && <Users />}
+              {currentPage === 'users' && user?.role === 'ADMIN' && (
+                <Users onToast={setToastMessage} />
+              )}
             </>
           )}
         </main>

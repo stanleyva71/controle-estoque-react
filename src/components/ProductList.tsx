@@ -16,68 +16,88 @@ import type { Product } from '../types/Product';
 
 interface ProductListProps {
   products: Product[];
-
   deleteProduct: (id: number) => Promise<void>;
-
   editProduct: (product: Product) => void;
+  canEdit: boolean;
+  canDelete: boolean;
 }
 
 function ProductList({
   products,
   deleteProduct,
   editProduct,
+  canEdit,
+  canDelete,
 }: ProductListProps) {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [sortOption, setSortOption] = useState('name');
   const [showLowStock, setShowLowStock] = useState(false);
-  const [productToDelete, setProductToDelete] = useState<Product | null>(null);
+  const [productToDelete, setProductToDelete] =
+    useState<Product | null>(null);
 
-  const categories = [...new Set(products.map((product) => product.category))];
+  const categories = [
+    ...new Set(
+      products.map((product) => product.category)
+    ),
+  ];
 
   const filteredProducts = products.filter((product) => {
     const searchText = search.toLowerCase();
 
     const matchesSearch =
-      product.name.toLowerCase().includes(searchText) ||
-      product.category.toLowerCase().includes(searchText);
+      product.name
+        .toLowerCase()
+        .includes(searchText) ||
+      product.category
+        .toLowerCase()
+        .includes(searchText);
 
     const matchesCategory =
-      selectedCategory === '' || product.category === selectedCategory;
+      selectedCategory === '' ||
+      product.category === selectedCategory;
 
-    const matchesLowStock = !showLowStock || product.quantity <= 5;
+    const matchesLowStock =
+      !showLowStock || product.quantity <= 5;
 
-    return matchesSearch && matchesCategory && matchesLowStock;
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesLowStock
+    );
   });
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    if (sortOption === 'name') {
-      return a.name.localeCompare(b.name);
-    }
+  const sortedProducts = [...filteredProducts].sort(
+    (a, b) => {
+      if (sortOption === 'name') {
+        return a.name.localeCompare(b.name);
+      }
 
-    if (sortOption === 'quantity-low') {
-      return a.quantity - b.quantity;
-    }
+      if (sortOption === 'quantity-low') {
+        return a.quantity - b.quantity;
+      }
 
-    if (sortOption === 'quantity-high') {
-      return b.quantity - a.quantity;
-    }
+      if (sortOption === 'quantity-high') {
+        return b.quantity - a.quantity;
+      }
 
-    if (sortOption === 'price-low') {
-      return a.price - b.price;
-    }
+      if (sortOption === 'price-low') {
+        return a.price - b.price;
+      }
 
-    if (sortOption === 'price-high') {
-      return b.price - a.price;
-    }
+      if (sortOption === 'price-high') {
+        return b.price - a.price;
+      }
 
-    return 0;
-  });
+      return 0;
+    }
+  );
+
+  const hasActions = canEdit || canDelete;
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
       {/* Cabeçalho */}
-
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <h2 className="text-xl font-bold text-slate-800">
@@ -98,7 +118,6 @@ function ProductList({
       </div>
 
       {/* Busca */}
-
       <div className="relative mb-4">
         <Search
           size={20}
@@ -134,7 +153,6 @@ function ProductList({
       </div>
 
       {/* Filtros */}
-
       <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
         <div className="relative">
           <Filter
@@ -145,7 +163,9 @@ function ProductList({
           <select
             value={selectedCategory}
             onChange={(event) => {
-              setSelectedCategory(event.target.value);
+              setSelectedCategory(
+                event.target.value
+              );
             }}
             className="
               w-full
@@ -166,10 +186,15 @@ function ProductList({
               focus:ring-blue-100
             "
           >
-            <option value="">Todas as categorias</option>
+            <option value="">
+              Todas as categorias
+            </option>
 
             {categories.map((category) => (
-              <option key={category} value={category}>
+              <option
+                key={category}
+                value={category}
+              >
                 {category}
               </option>
             ))}
@@ -206,32 +231,46 @@ function ProductList({
               focus:ring-blue-100
             "
           >
-            <option value="name">Nome: A → Z</option>
+            <option value="name">
+              Nome: A → Z
+            </option>
 
-            <option value="quantity-low">Menor quantidade</option>
+            <option value="quantity-low">
+              Menor quantidade
+            </option>
 
-            <option value="quantity-high">Maior quantidade</option>
+            <option value="quantity-high">
+              Maior quantidade
+            </option>
 
-            <option value="price-low">Menor preço</option>
+            <option value="price-low">
+              Menor preço
+            </option>
 
-            <option value="price-high">Maior preço</option>
+            <option value="price-high">
+              Maior preço
+            </option>
           </select>
         </div>
       </div>
 
       {/* Estoque baixo */}
-
       <label className="mb-6 flex cursor-pointer items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
         <input
           type="checkbox"
           checked={showLowStock}
           onChange={(event) => {
-            setShowLowStock(event.target.checked);
+            setShowLowStock(
+              event.target.checked
+            );
           }}
           className="h-5 w-5 cursor-pointer accent-blue-600"
         />
 
-        <AlertTriangle size={20} className="text-amber-500" />
+        <AlertTriangle
+          size={20}
+          className="text-amber-500"
+        />
 
         <span className="text-sm font-medium text-slate-700">
           Mostrar somente produtos com estoque baixo
@@ -239,7 +278,6 @@ function ProductList({
       </label>
 
       {/* Nenhum produto */}
-
       {sortedProducts.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600">
@@ -254,13 +292,14 @@ function ProductList({
 
           <p className="mt-2 max-w-sm text-sm text-slate-500">
             {products.length === 0
-              ? 'Cadastre seu primeiro produto usando o formulário ao lado.'
+              ? canEdit
+                ? 'Cadastre seu primeiro produto usando o formulário ao lado.'
+                : 'Ainda não existem produtos cadastrados no estoque.'
               : 'Tente alterar a busca ou os filtros selecionados.'}
           </p>
         </div>
       ) : (
         /* Tabela */
-
         <div className="overflow-x-auto rounded-xl border border-slate-200">
           <table className="min-w-full">
             <thead className="bg-slate-50">
@@ -281,15 +320,18 @@ function ProductList({
                   Preço
                 </th>
 
-                <th className="px-5 py-4 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Ações
-                </th>
+                {hasActions && (
+                  <th className="px-5 py-4 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Ações
+                  </th>
+                )}
               </tr>
             </thead>
 
             <tbody>
               {sortedProducts.map((product) => {
-                const lowStock = product.quantity <= 5;
+                const lowStock =
+                  product.quantity <= 5;
 
                 return (
                   <tr
@@ -297,7 +339,6 @@ function ProductList({
                     className="border-b border-slate-100 transition duration-150 hover:bg-blue-50/40"
                   >
                     {/* Produto */}
-
                     <td className="px-5 py-4">
                       <div className="flex items-center gap-3">
                         {product.image ? (
@@ -308,7 +349,9 @@ function ProductList({
                           />
                         ) : (
                           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-600">
-                            {product.name.charAt(0).toUpperCase()}
+                            {product.name
+                              .charAt(0)
+                              .toUpperCase()}
                           </div>
                         )}
 
@@ -319,7 +362,9 @@ function ProductList({
 
                           {lowStock && (
                             <p className="mt-1 flex items-center gap-1 text-xs font-medium text-red-600">
-                              <AlertTriangle size={13} />
+                              <AlertTriangle
+                                size={13}
+                              />
                               Estoque baixo
                             </p>
                           )}
@@ -328,7 +373,6 @@ function ProductList({
                     </td>
 
                     {/* Categoria */}
-
                     <td className="px-5 py-4">
                       <span className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700">
                         {product.category}
@@ -336,7 +380,6 @@ function ProductList({
                     </td>
 
                     {/* Quantidade */}
-
                     <td className="px-5 py-4">
                       <span
                         className={
@@ -350,65 +393,74 @@ function ProductList({
                     </td>
 
                     {/* Preço */}
-
                     <td className="px-5 py-4 font-semibold text-slate-700">
-                      {new Intl.NumberFormat('pt-BR', {
-                        style: 'currency',
-                        currency: 'BRL',
-                      }).format(product.price)}
+                      {new Intl.NumberFormat(
+                        'pt-BR',
+                        {
+                          style: 'currency',
+                          currency: 'BRL',
+                        }
+                      ).format(product.price)}
                     </td>
 
                     {/* Ações */}
+                    {hasActions && (
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          {canEdit && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                editProduct(product);
+                              }}
+                              className="
+                                flex
+                                h-10
+                                w-10
+                                items-center
+                                justify-center
+                                rounded-lg
+                                bg-blue-50
+                                text-blue-600
+                                transition
+                                hover:bg-blue-100
+                              "
+                              aria-label={`Editar ${product.name}`}
+                              title="Editar produto"
+                            >
+                              <Pencil size={18} />
+                            </button>
+                          )}
 
-                    <td className="px-5 py-4">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            editProduct(product);
-                          }}
-                          className="
-                            flex
-                            h-10
-                            w-10
-                            items-center
-                            justify-center
-                            rounded-lg
-                            bg-blue-50
-                            text-blue-600
-                            transition
-                            hover:bg-blue-100
-                          "
-                          aria-label={`Editar ${product.name}`}
-                          title="Editar produto"
-                        >
-                          <Pencil size={18} />
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setProductToDelete(product);
-                          }}
-                          className="
-                            flex
-                            h-10
-                            w-10
-                            items-center
-                            justify-center
-                            rounded-lg
-                            bg-red-50
-                            text-red-600
-                            transition
-                            hover:bg-red-100
-                          "
-                          aria-label={`Excluir ${product.name}`}
-                          title="Excluir produto"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
+                          {canDelete && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProductToDelete(
+                                  product
+                                );
+                              }}
+                              className="
+                                flex
+                                h-10
+                                w-10
+                                items-center
+                                justify-center
+                                rounded-lg
+                                bg-red-50
+                                text-red-600
+                                transition
+                                hover:bg-red-100
+                              "
+                              aria-label={`Excluir ${product.name}`}
+                              title="Excluir produto"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    )}
                   </tr>
                 );
               })}
@@ -418,7 +470,6 @@ function ProductList({
       )}
 
       {/* Modal de exclusão */}
-
       {productToDelete && (
         <DeleteModal
           productName={productToDelete.name}
@@ -426,7 +477,10 @@ function ProductList({
             setProductToDelete(null);
           }}
           onConfirm={async () => {
-            await deleteProduct(productToDelete.id);
+            await deleteProduct(
+              productToDelete.id
+            );
+
             setProductToDelete(null);
           }}
         />

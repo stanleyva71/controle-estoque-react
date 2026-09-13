@@ -29,7 +29,11 @@ type UserFormData = {
   role: User['role'];
 };
 
-function Users() {
+interface UsersProps {
+  onToast: (message: string) => void;
+}
+
+function Users({ onToast }: UsersProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -59,9 +63,7 @@ function Users() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || 'Não foi possível carregar os usuários.'
-        );
+        throw new Error(data.error || 'Não foi possível carregar os usuários.');
       }
 
       setUsers(data);
@@ -107,26 +109,16 @@ function Users() {
     setShowForm(true);
   }
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (
-      !formData.name.trim() ||
-      !formData.email.trim()
-    ) {
+    if (!formData.name.trim() || !formData.email.trim()) {
       showError('Preencha nome e e-mail.');
       return;
     }
 
-    if (
-      !editingUser &&
-      formData.password.length < 6
-    ) {
-      showError(
-        'A senha deve possuir pelo menos 6 caracteres.'
-      );
+    if (!editingUser && formData.password.length < 6) {
+      showError('A senha deve possuir pelo menos 6 caracteres.');
       return;
     }
 
@@ -135,9 +127,7 @@ function Users() {
       formData.password.length > 0 &&
       formData.password.length < 6
     ) {
-      showError(
-        'A nova senha deve possuir pelo menos 6 caracteres.'
-      );
+      showError('A nova senha deve possuir pelo menos 6 caracteres.');
       return;
     }
 
@@ -159,63 +149,38 @@ function Users() {
         payload.password = formData.password;
       }
 
-      const endpoint = editingUser
-        ? `/users/${editingUser.id}`
-        : '/users';
+      const endpoint = editingUser ? `/users/${editingUser.id}` : '/users';
 
-      const method = editingUser
-        ? 'PUT'
-        : 'POST';
+      const method = editingUser ? 'PUT' : 'POST';
 
-      const response = await apiFetch(
-        endpoint,
-        {
-          method,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await apiFetch(endpoint, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error ||
-            'Não foi possível salvar o usuário.'
-        );
+        throw new Error(data.error || 'Não foi possível salvar o usuário.');
       }
 
       if (editingUser) {
         setUsers((currentUsers) =>
-          currentUsers.map((user) =>
-            user.id === editingUser.id
-              ? data
-              : user
-          )
+          currentUsers.map((user) => (user.id === editingUser.id ? data : user))
         );
 
-        window.alert(
-          '✅ Operação realizada!\nUsuário atualizado com sucesso.'
-        );
+        onToast('Usuário atualizado com sucesso.');
       } else {
-        setUsers((currentUsers) => [
-          data,
-          ...currentUsers,
-        ]);
-
-        window.alert(
-          '✅ Operação realizada!\nUsuário criado com sucesso.'
-        );
+        setUsers((currentUsers) => [data, ...currentUsers]);
+        onToast('Usuário criado com sucesso.');
       }
 
       resetForm();
     } catch (error) {
-      console.error(
-        'ERRO AO SALVAR USUÁRIO:',
-        error
-      );
+      console.error('ERRO AO SALVAR USUÁRIO:', error);
 
       showError(
         error instanceof Error
@@ -239,38 +204,25 @@ function Users() {
     try {
       setDeletingId(user.id);
 
-      const response = await apiFetch(
-        `/users/${user.id}`,
-        {
-          method: 'DELETE',
-        }
-      );
+      const response = await apiFetch(`/users/${user.id}`, {
+        method: 'DELETE',
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error ||
-            'Não foi possível excluir o usuário.'
-        );
+        throw new Error(data.error || 'Não foi possível excluir o usuário.');
       }
 
       setUsers((currentUsers) =>
-        currentUsers.filter(
-          (currentUser) =>
-            currentUser.id !== user.id
-        )
+        currentUsers.filter((currentUser) => currentUser.id !== user.id)
       );
 
       window.alert(
-        data.message ||
-          '✅ Operação realizada!\nUsuário excluído com sucesso.'
+        data.message || '✅ Operação realizada!\nUsuário excluído com sucesso.'
       );
     } catch (error) {
-      console.error(
-        'ERRO AO EXCLUIR USUÁRIO:',
-        error
-      );
+      console.error('ERRO AO EXCLUIR USUÁRIO:', error);
 
       showError(
         error instanceof Error
@@ -320,9 +272,7 @@ function Users() {
         >
           <div
             className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
-            onClick={(event) =>
-              event.stopPropagation()
-            }
+            onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-4 flex items-center gap-3">
               <div className="flex h-11 w-11 items-center justify-center rounded-full bg-red-100 text-red-600">
@@ -334,16 +284,12 @@ function Users() {
               </h2>
             </div>
 
-            <p className="text-sm leading-6 text-slate-600">
-              {errorMessage}
-            </p>
+            <p className="text-sm leading-6 text-slate-600">{errorMessage}</p>
 
             <div className="mt-6 flex justify-end">
               <button
                 type="button"
-                onClick={() =>
-                  setErrorMessage('')
-                }
+                onClick={() => setErrorMessage('')}
                 className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 Entendi
@@ -383,9 +329,7 @@ function Users() {
             <div className="mb-5 flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
-                  {editingUser
-                    ? 'Editar usuário'
-                    : 'Novo usuário'}
+                  {editingUser ? 'Editar usuário' : 'Novo usuário'}
                 </h2>
 
                 <p className="text-sm text-slate-500">
@@ -452,9 +396,7 @@ function Users() {
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                  {editingUser
-                    ? 'Nova senha'
-                    : 'Senha'}
+                  {editingUser ? 'Nova senha' : 'Senha'}
                 </label>
 
                 <input
@@ -486,24 +428,17 @@ function Users() {
                   onChange={(event) =>
                     setFormData((current) => ({
                       ...current,
-                      role: event.target
-                        .value as User['role'],
+                      role: event.target.value as User['role'],
                     }))
                   }
                   disabled={saving}
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
                 >
-                  <option value="ADMIN">
-                    Administrador
-                  </option>
+                  <option value="ADMIN">Administrador</option>
 
-                  <option value="OPERADOR">
-                    Operador
-                  </option>
+                  <option value="OPERADOR">Operador</option>
 
-                  <option value="VISUALIZACAO">
-                    Visualização
-                  </option>
+                  <option value="VISUALIZACAO">Visualização</option>
                 </select>
               </div>
 
@@ -522,12 +457,7 @@ function Users() {
                   disabled={saving}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {saving && (
-                    <Loader2
-                      size={17}
-                      className="animate-spin"
-                    />
-                  )}
+                  {saving && <Loader2 size={17} className="animate-spin" />}
 
                   {saving
                     ? 'Salvando...'
@@ -543,17 +473,11 @@ function Users() {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {loading ? (
             <div className="flex min-h-48 items-center justify-center">
-              <Loader2
-                size={28}
-                className="animate-spin text-slate-500"
-              />
+              <Loader2 size={28} className="animate-spin text-slate-500" />
             </div>
           ) : users.length === 0 ? (
             <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center">
-              <UserRound
-                size={40}
-                className="mb-3 text-slate-300"
-              />
+              <UserRound size={40} className="mb-3 text-slate-300" />
 
               <h3 className="text-base font-semibold text-slate-800">
                 Nenhum usuário encontrado
@@ -592,10 +516,7 @@ function Users() {
 
                 <tbody className="divide-y divide-slate-100">
                   {users.map((user) => (
-                    <tr
-                      key={user.id}
-                      className="transition hover:bg-slate-50"
-                    >
+                    <tr key={user.id} className="transition hover:bg-slate-50">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-600">
@@ -626,23 +547,15 @@ function Users() {
                       </td>
 
                       <td className="px-5 py-4 text-sm text-slate-500">
-                        {new Date(
-                          user.createdAt
-                        ).toLocaleDateString(
-                          'pt-BR'
-                        )}
+                        {new Date(user.createdAt).toLocaleDateString('pt-BR')}
                       </td>
 
                       <td className="px-5 py-4">
                         <div className="flex justify-end gap-2">
                           <button
                             type="button"
-                            onClick={() =>
-                              handleEdit(user)
-                            }
-                            disabled={
-                              deletingId !== null
-                            }
+                            onClick={() => handleEdit(user)}
+                            disabled={deletingId !== null}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                           >
                             <Edit size={16} />
@@ -651,24 +564,15 @@ function Users() {
 
                           <button
                             type="button"
-                            onClick={() =>
-                              handleDelete(user)
-                            }
-                            disabled={
-                              deletingId !== null
-                            }
+                            onClick={() => handleDelete(user)}
+                            disabled={deletingId !== null}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                           >
-                            {deletingId ===
-                            user.id ? (
-                              <Loader2
-                                size={16}
-                                className="animate-spin"
-                              />
+                            {deletingId === user.id ? (
+                              <Loader2 size={16} className="animate-spin" />
                             ) : (
                               <Trash2 size={16} />
                             )}
-
                             Excluir
                           </button>
                         </div>
