@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   FolderTree,
@@ -9,6 +9,8 @@ import {
   Package,
   X,
   Save,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 import DeleteModal from './DeleteModal';
@@ -24,6 +26,8 @@ interface CategoriesProps {
   updateProducts: (products: Product[]) => void;
   user: AuthUser | null;
 }
+
+const CATEGORIES_PER_PAGE = 5;
 
 function Categories({
   products,
@@ -47,6 +51,8 @@ function Categories({
   const [showForm, setShowForm] = useState(false);
 
   const [loading, setLoading] = useState(true);
+
+  const [currentPage, setCurrentPage] = useState(1);
 
   // =========================
   // Permissões
@@ -193,7 +199,6 @@ function Categories({
           );
         }
 
-        // Sincroniza o estado dos produtos no frontend.
         const updatedProducts = products.map(
           (product) =>
             product.category.toLowerCase() ===
@@ -335,6 +340,49 @@ function Categories({
           .includes(search.toLowerCase())
     );
 
+  // =========================
+  // Paginação
+  // =========================
+
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      filteredCategories.length /
+        CATEGORIES_PER_PAGE
+    )
+  );
+
+  const paginatedCategories = useMemo(() => {
+    const startIndex =
+      (currentPage - 1) *
+      CATEGORIES_PER_PAGE;
+
+    const endIndex =
+      startIndex +
+      CATEGORIES_PER_PAGE;
+
+    return filteredCategories.slice(
+      startIndex,
+      endIndex
+    );
+  }, [
+    filteredCategories,
+    currentPage,
+  ]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [
+    currentPage,
+    totalPages,
+  ]);
+
   function getProductCount(categoryName: string) {
     return products.filter(
       (product) =>
@@ -390,7 +438,9 @@ function Categories({
         {/* Cabeçalho */}
 
         <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
           <div className="flex items-center gap-3">
+
             <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-100 text-blue-600">
               <FolderTree size={23} />
             </div>
@@ -406,6 +456,7 @@ function Categories({
                   : 'Consulte as categorias cadastradas no estoque.'}
               </p>
             </div>
+
           </div>
 
           {canEdit && (
@@ -415,16 +466,17 @@ function Categories({
               className="flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-700"
             >
               <Plus size={18} />
-
               Nova categoria
             </button>
           )}
+
         </div>
 
         {/* Erro */}
 
         {error && !showForm && (
           <div className="mb-5 flex items-center justify-between rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+
             <p className="text-sm font-medium text-red-600">
               {error}
             </p>
@@ -437,12 +489,14 @@ function Categories({
             >
               <X size={18} />
             </button>
+
           </div>
         )}
 
         {/* Resumo */}
 
         <div className="mb-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+
           <div className="rounded-xl border border-blue-200 bg-blue-50 p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-blue-600">
               Categorias
@@ -472,11 +526,13 @@ function Categories({
               {categoriesWithoutProducts}
             </p>
           </div>
+
         </div>
 
         {/* Busca */}
 
         <div className="relative mb-5">
+
           <Search
             size={19}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -491,13 +547,16 @@ function Categories({
             }
             className="w-full rounded-xl border border-slate-300 bg-slate-50 py-3 pl-11 pr-4 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-100"
           />
+
         </div>
 
         {/* Formulário */}
 
         {showForm && canEdit && (
           <div className="mb-6 rounded-2xl border border-blue-200 bg-blue-50 p-5">
+
             <div className="mb-4 flex items-center justify-between">
+
               <div>
                 <h3 className="font-bold text-slate-800">
                   {editingCategory
@@ -518,12 +577,14 @@ function Categories({
               >
                 <X size={18} />
               </button>
+
             </div>
 
             <form
               onSubmit={handleSubmit}
               className="flex flex-col gap-3 sm:flex-row"
             >
+
               <input
                 type="text"
                 placeholder="Ex: Periféricos"
@@ -555,6 +616,7 @@ function Categories({
               >
                 Cancelar
               </button>
+
             </form>
 
             {error && (
@@ -562,13 +624,16 @@ function Categories({
                 {error}
               </p>
             )}
+
           </div>
         )}
 
         {/* Lista */}
 
         {filteredCategories.length === 0 ? (
+
           <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
+
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600">
               <FolderTree size={30} />
             </div>
@@ -586,145 +651,266 @@ function Categories({
                   : 'Ainda não existem categorias cadastradas.'
                 : 'Tente utilizar outro termo na busca.'}
             </p>
+
           </div>
+
         ) : (
-          <div className="overflow-hidden rounded-xl border border-slate-200">
-            <div className="overflow-x-auto">
-              <table className="min-w-[700px] w-full">
-                <thead className="bg-slate-50">
-                  <tr className="border-b border-slate-200">
 
-                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Categoria
-                    </th>
+          <>
 
-                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Produtos
-                    </th>
+            <div className="overflow-hidden rounded-xl border border-slate-200">
 
-                    <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                      Criada em
-                    </th>
+              <div className="overflow-x-auto">
 
-                    {(canEdit || canDelete) && (
-                      <th className="px-5 py-4 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                        Ações
+                <table className="min-w-[700px] w-full">
+
+                  <thead className="bg-slate-50">
+
+                    <tr className="border-b border-slate-200">
+
+                      <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Categoria
                       </th>
+
+                      <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Produtos
+                      </th>
+
+                      <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                        Criada em
+                      </th>
+
+                      {(canEdit ||
+                        canDelete) && (
+                        <th className="px-5 py-4 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                          Ações
+                        </th>
+                      )}
+
+                    </tr>
+
+                  </thead>
+
+                  <tbody>
+
+                    {paginatedCategories.map(
+                      (category) => {
+
+                        const productCount =
+                          getProductCount(
+                            category.name
+                          );
+
+                        return (
+                          <tr
+                            key={category.id}
+                            className="border-b border-slate-100 transition hover:bg-slate-50"
+                          >
+
+                            {/* Categoria */}
+
+                            <td className="px-5 py-4">
+
+                              <div className="flex items-center gap-3">
+
+                                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
+                                  <FolderTree
+                                    size={18}
+                                  />
+                                </div>
+
+                                <span className="font-semibold text-slate-800">
+                                  {category.name}
+                                </span>
+
+                              </div>
+
+                            </td>
+
+                            {/* Produtos */}
+
+                            <td className="px-5 py-4">
+
+                              <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700">
+                                <Package
+                                  size={15}
+                                />
+
+                                {productCount}
+                              </span>
+
+                            </td>
+
+                            {/* Data */}
+
+                            <td className="px-5 py-4 text-sm text-slate-500">
+
+                              {new Intl.DateTimeFormat(
+                                'pt-BR',
+                                {
+                                  dateStyle:
+                                    'short',
+                                }
+                              ).format(
+                                new Date(
+                                  category.createdAt
+                                )
+                              )}
+
+                            </td>
+
+                            {/* Ações */}
+
+                            {(canEdit ||
+                              canDelete) && (
+
+                              <td className="px-5 py-4">
+
+                                <div className="flex justify-end gap-2">
+
+                                  {canEdit && (
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        openEditForm(
+                                          category
+                                        )
+                                      }
+                                      className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition hover:bg-blue-100"
+                                      title="Editar categoria"
+                                      aria-label={`Editar ${category.name}`}
+                                    >
+                                      <Pencil
+                                        size={18}
+                                      />
+                                    </button>
+
+                                  )}
+
+                                  {canDelete && (
+
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        handleDelete(
+                                          category
+                                        )
+                                      }
+                                      className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100"
+                                      title="Excluir categoria"
+                                      aria-label={`Excluir ${category.name}`}
+                                    >
+                                      <Trash2
+                                        size={18}
+                                      />
+                                    </button>
+
+                                  )}
+
+                                </div>
+
+                              </td>
+
+                            )}
+
+                          </tr>
+                        );
+                      }
                     )}
 
-                  </tr>
-                </thead>
+                  </tbody>
 
-                <tbody>
-                  {filteredCategories.map(
-                    (category) => {
-                      const productCount =
-                        getProductCount(
-                          category.name
-                        );
+                </table>
 
-                      return (
-                        <tr
-                          key={category.id}
-                          className="border-b border-slate-100 transition hover:bg-slate-50"
-                        >
+              </div>
 
-                          {/* Categoria */}
-
-                          <td className="px-5 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
-                                <FolderTree
-                                  size={18}
-                                />
-                              </div>
-
-                              <span className="font-semibold text-slate-800">
-                                {category.name}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Produtos */}
-
-                          <td className="px-5 py-4">
-                            <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1.5 text-sm font-semibold text-slate-700">
-                              <Package size={15} />
-
-                              {productCount}
-                            </span>
-                          </td>
-
-                          {/* Data */}
-
-                          <td className="px-5 py-4 text-sm text-slate-500">
-                            {new Intl.DateTimeFormat(
-                              'pt-BR',
-                              {
-                                dateStyle: 'short',
-                              }
-                            ).format(
-                              new Date(
-                                category.createdAt
-                              )
-                            )}
-                          </td>
-
-                          {/* Ações */}
-
-                          {(canEdit || canDelete) && (
-                            <td className="px-5 py-4">
-                              <div className="flex justify-end gap-2">
-
-                                {canEdit && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      openEditForm(
-                                        category
-                                      )
-                                    }
-                                    className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 transition hover:bg-blue-100"
-                                    title="Editar categoria"
-                                    aria-label={`Editar ${category.name}`}
-                                  >
-                                    <Pencil
-                                      size={18}
-                                    />
-                                  </button>
-                                )}
-
-                                {canDelete && (
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      handleDelete(
-                                        category
-                                      )
-                                    }
-                                    className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100"
-                                    title="Excluir categoria"
-                                    aria-label={`Excluir ${category.name}`}
-                                  >
-                                    <Trash2
-                                      size={18}
-                                    />
-                                  </button>
-                                )}
-
-                              </div>
-                            </td>
-                          )}
-
-                        </tr>
-                      );
-                    }
-                  )}
-                </tbody>
-              </table>
             </div>
-          </div>
+
+            {/* Paginação */}
+
+            {totalPages > 1 && (
+              <div className="mt-5 flex flex-col items-center justify-between gap-4 sm:flex-row">
+
+                <p className="text-center text-sm text-slate-500 sm:text-left">
+                  Mostrando{' '}
+                  <span className="font-semibold text-slate-700">
+                    {(currentPage - 1) *
+                      CATEGORIES_PER_PAGE +
+                      1}
+                  </span>{' '}
+                  a{' '}
+                  <span className="font-semibold text-slate-700">
+                    {Math.min(
+                      currentPage *
+                        CATEGORIES_PER_PAGE,
+                      filteredCategories.length
+                    )}
+                  </span>{' '}
+                  de{' '}
+                  <span className="font-semibold text-slate-700">
+                    {filteredCategories.length}
+                  </span>{' '}
+                  categorias
+                </p>
+
+                <div className="flex items-center justify-center gap-2">
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage(
+                        (page) =>
+                          Math.max(
+                            1,
+                            page - 1
+                          )
+                      )
+                    }
+                    disabled={currentPage === 1}
+                    className="flex h-10 items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <ChevronLeft
+                      size={17}
+                    />
+                    Anterior
+                  </button>
+
+                  <div className="flex h-10 min-w-10 items-center justify-center rounded-lg bg-blue-600 px-3 text-sm font-bold text-white">
+                    {currentPage}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setCurrentPage(
+                        (page) =>
+                          Math.min(
+                            totalPages,
+                            page + 1
+                          )
+                      )
+                    }
+                    disabled={
+                      currentPage ===
+                      totalPages
+                    }
+                    className="flex h-10 items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Próxima
+                    <ChevronRight
+                      size={17}
+                    />
+                  </button>
+
+                </div>
+              </div>
+            )}
+
+          </>
+
         )}
+
       </section>
     </>
   );

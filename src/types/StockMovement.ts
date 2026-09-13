@@ -5,6 +5,12 @@ export type MovementType =
   | 'atualizacao'
   | 'remocao';
 
+export interface StockMovementUser {
+  id: number;
+  name: string;
+  email: string;
+}
+
 export interface StockMovement {
   id: string;
   productId: number;
@@ -15,4 +21,6 @@ export interface StockMovement {
   newQuantity: number;
   description: string;
   date: string;
+
+  user: StockMovementUser | null;
 }

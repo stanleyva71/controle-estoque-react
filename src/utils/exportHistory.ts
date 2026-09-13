@@ -10,7 +10,9 @@ function formatDate(date: string) {
   }).format(new Date(date));
 }
 
-function getMovementLabel(type: StockMovement['type']) {
+function getMovementLabel(
+  type: StockMovement['type'],
+) {
   switch (type) {
     case 'entrada':
       return 'Entrada';
@@ -32,14 +34,28 @@ function getMovementLabel(type: StockMovement['type']) {
   }
 }
 
-function escapeCsvValue(value: string | number) {
+function escapeCsvValue(
+  value: string | number,
+) {
   const stringValue = String(value);
 
   return `"${stringValue.replace(/"/g, '""')}"`;
 }
 
+function getUserName(
+  movement: StockMovement,
+) {
+  return movement.user?.name || 'Não identificado';
+}
+
+function getUserEmail(
+  movement: StockMovement,
+) {
+  return movement.user?.email || '—';
+}
+
 export function exportMovementsToCSV(
-  movements: StockMovement[]
+  movements: StockMovement[],
 ) {
   if (movements.length === 0) {
     return;
@@ -53,6 +69,8 @@ export function exportMovementsToCSV(
     'Quantidade',
     'Estoque anterior',
     'Novo estoque',
+    'Usuário',
+    'E-mail do usuário',
     'Data',
   ];
 
@@ -64,14 +82,15 @@ export function exportMovementsToCSV(
     movement.quantity,
     movement.previousQuantity,
     movement.newQuantity,
+    getUserName(movement),
+    getUserEmail(movement),
     formatDate(movement.date),
   ]);
 
   const csvContent = [
     headers.map(escapeCsvValue).join(';'),
-
     ...rows.map((row) =>
-      row.map(escapeCsvValue).join(';')
+      row.map(escapeCsvValue).join(';'),
     ),
   ].join('\n');
 
@@ -79,7 +98,7 @@ export function exportMovementsToCSV(
     ['\uFEFF' + csvContent],
     {
       type: 'text/csv;charset=utf-8;',
-    }
+    },
   );
 
   const url = URL.createObjectURL(blob);
@@ -87,19 +106,22 @@ export function exportMovementsToCSV(
   const link = document.createElement('a');
 
   link.href = url;
+
   link.download = `historico-estoque-${new Date()
     .toISOString()
     .slice(0, 10)}.csv`;
 
   document.body.appendChild(link);
+
   link.click();
+
   document.body.removeChild(link);
 
   URL.revokeObjectURL(url);
 }
 
 export function exportMovementsToPDF(
-  movements: StockMovement[]
+  movements: StockMovement[],
 ) {
   if (movements.length === 0) {
     return;
@@ -114,19 +136,27 @@ export function exportMovementsToPDF(
   const now = new Date();
 
   doc.setFontSize(18);
-  doc.text('Histórico de Movimentações', 14, 15);
+
+  doc.text(
+    'Histórico de Movimentações',
+    14,
+    15,
+  );
 
   doc.setFontSize(10);
+
   doc.text(
-    `Relatório gerado em ${formatDate(now.toISOString())}`,
+    `Relatório gerado em ${formatDate(
+      now.toISOString(),
+    )}`,
     14,
-    22
+    22,
   );
 
   doc.text(
     `Total de registros: ${movements.length}`,
     14,
-    28
+    28,
   );
 
   autoTable(doc, {
@@ -139,6 +169,7 @@ export function exportMovementsToPDF(
       'Qtd.',
       'Anterior',
       'Novo',
+      'Usuário',
       'Data',
     ]],
 
@@ -149,6 +180,7 @@ export function exportMovementsToPDF(
       movement.quantity,
       movement.previousQuantity,
       movement.newQuantity,
+      getUserName(movement),
       formatDate(movement.date),
     ]),
 
@@ -163,30 +195,41 @@ export function exportMovementsToPDF(
 
     columnStyles: {
       0: {
-        cellWidth: 35,
+        cellWidth: 32,
       },
+
       1: {
-        cellWidth: 25,
+        cellWidth: 24,
       },
+
       2: {
-        cellWidth: 70,
+        cellWidth: 55,
       },
+
       3: {
         cellWidth: 15,
       },
+
       4: {
-        cellWidth: 20,
+        cellWidth: 18,
       },
+
       5: {
-        cellWidth: 20,
+        cellWidth: 18,
       },
+
       6: {
-        cellWidth: 35,
+        cellWidth: 45,
+      },
+
+      7: {
+        cellWidth: 32,
       },
     },
 
     didDrawPage: (data) => {
-      const pageCount = doc.getNumberOfPages();
+      const pageCount =
+        doc.getNumberOfPages();
 
       doc.setFontSize(8);
 
@@ -196,7 +239,7 @@ export function exportMovementsToPDF(
         200,
         {
           align: 'right',
-        }
+        },
       );
     },
   });
@@ -204,6 +247,6 @@ export function exportMovementsToPDF(
   doc.save(
     `historico-estoque-${new Date()
       .toISOString()
-      .slice(0, 10)}.pdf`
+      .slice(0, 10)}.pdf`,
   );
 }

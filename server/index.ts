@@ -1,16 +1,10 @@
 import express from 'express';
-
 import cors from 'cors';
-
 import helmet from 'helmet';
-
 import rateLimit from 'express-rate-limit';
-
 import bcrypt from 'bcrypt';
-
 import jwt from 'jsonwebtoken';
-
-import { PrismaClient, UserRole } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 
 import {
   auth,
@@ -18,7 +12,6 @@ import {
 } from './middleware/auth';
 
 import { authorize } from './middleware/authorize';
-
 import { prisma } from './lib/prisma';
 
 const app = express();
@@ -165,7 +158,11 @@ app.use('/api', auth);
 
 app.get(
   '/api/auth/me',
-  authorize('ADMIN', 'OPERADOR', 'VISUALIZACAO'),
+  authorize(
+    'ADMIN',
+    'OPERADOR',
+    'VISUALIZACAO'
+  ),
   (req: AuthenticatedRequest, res) => {
     return res.json({
       user: req.user,
@@ -196,7 +193,8 @@ app.post(
         name.trim().length < 2
       ) {
         return res.status(400).json({
-          error: 'Nome deve possuir pelo menos 2 caracteres.',
+          error:
+            'Nome deve possuir pelo menos 2 caracteres.',
         });
       }
 
@@ -214,7 +212,8 @@ app.post(
         password.length < 6
       ) {
         return res.status(400).json({
-          error: 'A senha deve possuir pelo menos 6 caracteres.',
+          error:
+            'A senha deve possuir pelo menos 6 caracteres.',
         });
       }
 
@@ -245,7 +244,8 @@ app.post(
 
       if (existingUser) {
         return res.status(409).json({
-          error: 'Já existe um usuário com esse e-mail.',
+          error:
+            'Já existe um usuário com esse e-mail.',
         });
       }
 
@@ -276,7 +276,8 @@ app.post(
       );
 
       return res.status(500).json({
-        error: 'Não foi possível criar o usuário.',
+        error:
+          'Não foi possível criar o usuário.',
       });
     }
   }
@@ -309,7 +310,8 @@ app.put(
         name.trim().length < 2
       ) {
         return res.status(400).json({
-          error: 'Nome deve possuir pelo menos 2 caracteres.',
+          error:
+            'Nome deve possuir pelo menos 2 caracteres.',
         });
       }
 
@@ -363,7 +365,8 @@ app.put(
 
       if (duplicateEmail) {
         return res.status(409).json({
-          error: 'Já existe outro usuário com esse e-mail.',
+          error:
+            'Já existe outro usuário com esse e-mail.',
         });
       }
 
@@ -549,7 +552,8 @@ app.get(
           category: product.category,
           quantity: product.quantity,
           price: Number(product.price),
-          image: product.image ?? undefined,
+          image:
+            product.image ?? undefined,
         }))
       );
     } catch (error) {
@@ -602,7 +606,8 @@ app.get(
         category: product.category,
         quantity: product.quantity,
         price: Number(product.price),
-        image: product.image ?? undefined,
+        image:
+          product.image ?? undefined,
       });
     } catch (error) {
       console.error(
@@ -623,7 +628,7 @@ app.get(
 app.post(
   '/api/products',
   authorize('ADMIN', 'OPERADOR'),
-  async (req, res) => {
+  async (req: AuthenticatedRequest, res) => {
     try {
       const {
         name,
@@ -704,6 +709,8 @@ app.post(
                   createdProduct.quantity,
                 description:
                   'Produto criado.',
+                userId:
+                  req.user!.userId,
               },
             });
 
@@ -717,7 +724,8 @@ app.post(
         category: product.category,
         quantity: product.quantity,
         price: Number(product.price),
-        image: product.image ?? undefined,
+        image:
+          product.image ?? undefined,
       });
     } catch (error) {
       console.error(
@@ -738,7 +746,7 @@ app.post(
 app.put(
   '/api/products/:id',
   authorize('ADMIN', 'OPERADOR'),
-  async (req, res) => {
+  async (req: AuthenticatedRequest, res) => {
     try {
       const id = Number(req.params.id);
 
@@ -843,6 +851,8 @@ app.put(
                     updatedProduct.quantity,
                   description:
                     `Entrada de ${quantityDifference} unidade(s)`,
+                  userId:
+                    req.user!.userId,
                 },
               });
             } else if (
@@ -867,6 +877,8 @@ app.put(
                     `Saída de ${Math.abs(
                       quantityDifference
                     )} unidade(s)`,
+                  userId:
+                    req.user!.userId,
                 },
               });
             } else {
@@ -884,6 +896,8 @@ app.put(
                     updatedProduct.quantity,
                   description:
                     'Informações do produto atualizadas.',
+                  userId:
+                    req.user!.userId,
                 },
               });
             }
@@ -905,7 +919,8 @@ app.put(
         category: result.category,
         quantity: result.quantity,
         price: Number(result.price),
-        image: result.image ?? undefined,
+        image:
+          result.image ?? undefined,
       });
     } catch (error) {
       console.error(
@@ -926,7 +941,10 @@ app.put(
 app.delete(
   '/api/products/:id',
   authorize('ADMIN'),
-  async (req, res) => {
+  async (
+    req: AuthenticatedRequest,
+    res
+  ) => {
     try {
       const id = Number(req.params.id);
 
@@ -960,6 +978,8 @@ app.delete(
                 newQuantity: 0,
                 description:
                   'Produto removido.',
+                userId:
+                  req.user!.userId,
               },
             });
 
@@ -1016,6 +1036,15 @@ app.get(
           orderBy: {
             date: 'desc',
           },
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+              },
+            },
+          },
         });
 
       return res.json(
@@ -1032,7 +1061,15 @@ app.get(
             movement.newQuantity,
           description:
             movement.description,
-          date: movement.date.toISOString(),
+          user: movement.user
+            ? {
+                id: movement.user.id,
+                name: movement.user.name,
+                email: movement.user.email,
+              }
+            : null,
+          date:
+            movement.date.toISOString(),
         }))
       );
     } catch (error) {
@@ -1405,7 +1442,8 @@ app.post(
         }
 
         if (
-          typeof product.quantity !== 'number'
+          typeof product.quantity !==
+          'number'
         ) {
           return res.status(400).json({
             error:
@@ -1438,7 +1476,6 @@ app.post(
         );
 
       const prompt = `
-
 Você é um assistente de gestão de estoque.
 
 Sua função é APENAS explicar os dados calculados pelo sistema.
@@ -1474,25 +1511,15 @@ REGRAS OBRIGATÓRIAS
 =========================
 
 1. NÃO faça novos cálculos.
-
 2. NÃO altere nenhuma quantidade.
-
 3. NÃO invente produtos.
-
 4. NÃO invente valores.
-
 5. NÃO considere estoque baixo um produto com quantidade maior que 5.
-
 6. Produtos com quantidade maior que 5 NÃO devem ser classificados como estoque baixo.
-
 7. Produtos que NÃO aparecem em "Produtos com estoque baixo" NÃO possuem estoque baixo.
-
 8. Não recomende reposição para produtos que não estão em estoque baixo.
-
 9. Não invente dados de vendas, demanda ou previsão de consumo.
-
 10. Não sugira aumentar quantidades sem dados fornecidos pelo sistema.
-
 11. Use exclusivamente os dados apresentados acima.
 
 =========================
@@ -1536,7 +1563,6 @@ Não invente demanda, vendas futuras ou quantidades de compra.
 Responda em português do Brasil.
 
 Seja objetivo.
-
 `;
 
       const response = await fetch(
@@ -1767,7 +1793,6 @@ app.post(
         );
 
       const prompt = `
-
 Você é um assistente especializado em gestão de estoque.
 
 Sua função é responder perguntas sobre os produtos cadastrados no sistema.
@@ -1843,49 +1868,27 @@ REGRAS DE RESPOSTA
 =========================
 
 - Responda em português do Brasil.
-
 - Use somente os dados fornecidos pelo sistema.
-
 - Não invente produtos.
-
 - Não invente quantidades.
-
 - Não altere nenhuma quantidade.
-
 - Nunca considere um produto com quantidade maior que 5 como estoque baixo.
-
 - Quando perguntarem qual produto possui maior estoque, use exatamente os dados calculados pelo sistema.
-
 - Quando perguntarem quais produtos precisam de reposição, considere como prioridade os produtos com estoque baixo.
-
 - Não diga que um produto precisa de reposição apenas porque a quantidade dele é menor que a de outro produto.
-
 - Seja objetivo e claro.
-
 - Quando fizer sentido, use listas.
-
 - Quando perguntarem sobre maior preço, use exclusivamente os dados calculados pelo sistema.
-
 - Quando perguntarem sobre menor preço, use exclusivamente os dados calculados pelo sistema.
-
 - Não faça cálculos próprios.
-
 - Não invente preços.
-
 - NÃO mostre JSON na resposta.
-
 - NÃO mostre os dados brutos dos produtos.
-
 - Responda diretamente à pergunta do usuário.
-
 - Não explique como os dados foram calculados.
-
 - Não repita a pergunta do usuário.
-
 - Para preços, apresente os valores em reais no formato R$ 0,00.
-
 - Se a pergunta não tiver relação com o estoque, informe educadamente que você pode ajudar apenas com informações relacionadas ao estoque.
-
 `;
 
       const response = await fetch(

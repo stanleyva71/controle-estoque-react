@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import DeleteModal from './DeleteModal';
 
@@ -10,6 +10,8 @@ import {
   Pencil,
   Trash2,
   PackageSearch,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 
 import type { Product } from '../types/Product';
@@ -22,6 +24,8 @@ interface ProductListProps {
   canDelete: boolean;
 }
 
+const PRODUCTS_PER_PAGE = 5;
+
 function ProductList({
   products,
   deleteProduct,
@@ -30,75 +34,158 @@ function ProductList({
   canDelete,
 }: ProductListProps) {
   const [search, setSearch] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [sortOption, setSortOption] = useState('name');
-  const [showLowStock, setShowLowStock] = useState(false);
+
+  const [selectedCategory, setSelectedCategory] =
+    useState('');
+
+  const [sortOption, setSortOption] =
+    useState('name');
+
+  const [showLowStock, setShowLowStock] =
+    useState(false);
+
+  const [currentPage, setCurrentPage] =
+    useState(1);
+
   const [productToDelete, setProductToDelete] =
     useState<Product | null>(null);
 
   const categories = [
     ...new Set(
-      products.map((product) => product.category)
+      products.map(
+        (product) => product.category
+      )
     ),
   ];
 
-  const filteredProducts = products.filter((product) => {
-    const searchText = search.toLowerCase();
+  const filteredProducts =
+    products.filter((product) => {
+      const searchText =
+        search.toLowerCase();
 
-    const matchesSearch =
-      product.name
-        .toLowerCase()
-        .includes(searchText) ||
-      product.category
-        .toLowerCase()
-        .includes(searchText);
+      const matchesSearch =
+        product.name
+          .toLowerCase()
+          .includes(searchText) ||
+        product.category
+          .toLowerCase()
+          .includes(searchText);
 
-    const matchesCategory =
-      selectedCategory === '' ||
-      product.category === selectedCategory;
+      const matchesCategory =
+        selectedCategory === '' ||
+        product.category ===
+          selectedCategory;
 
-    const matchesLowStock =
-      !showLowStock || product.quantity <= 5;
+      const matchesLowStock =
+        !showLowStock ||
+        product.quantity <= 5;
 
-    return (
-      matchesSearch &&
-      matchesCategory &&
-      matchesLowStock
+      return (
+        matchesSearch &&
+        matchesCategory &&
+        matchesLowStock
+      );
+    });
+
+  const sortedProducts =
+    [...filteredProducts].sort(
+      (a, b) => {
+        if (sortOption === 'name') {
+          return a.name.localeCompare(b.name);
+        }
+
+        if (sortOption === 'quantity-low') {
+          return (
+            a.quantity -
+            b.quantity
+          );
+        }
+
+        if (
+          sortOption ===
+          'quantity-high'
+        ) {
+          return (
+            b.quantity -
+            a.quantity
+          );
+        }
+
+        if (sortOption === 'price-low') {
+          return (
+            a.price -
+            b.price
+          );
+        }
+
+        if (
+          sortOption ===
+          'price-high'
+        ) {
+          return (
+            b.price -
+            a.price
+          );
+        }
+
+        return 0;
+      }
     );
-  });
 
-  const sortedProducts = [...filteredProducts].sort(
-    (a, b) => {
-      if (sortOption === 'name') {
-        return a.name.localeCompare(b.name);
-      }
+  const hasActions =
+    canEdit || canDelete;
 
-      if (sortOption === 'quantity-low') {
-        return a.quantity - b.quantity;
-      }
+  // =========================
+  // Paginação
+  // =========================
 
-      if (sortOption === 'quantity-high') {
-        return b.quantity - a.quantity;
-      }
-
-      if (sortOption === 'price-low') {
-        return a.price - b.price;
-      }
-
-      if (sortOption === 'price-high') {
-        return b.price - a.price;
-      }
-
-      return 0;
-    }
+  const totalPages = Math.max(
+    1,
+    Math.ceil(
+      sortedProducts.length /
+        PRODUCTS_PER_PAGE
+    )
   );
 
-  const hasActions = canEdit || canDelete;
+  const paginatedProducts =
+    sortedProducts.slice(
+      (currentPage - 1) *
+        PRODUCTS_PER_PAGE,
+      currentPage *
+        PRODUCTS_PER_PAGE
+    );
+
+  // Sempre volta para a primeira
+  // página quando o resultado muda.
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [
+    search,
+    selectedCategory,
+    sortOption,
+    showLowStock,
+  ]);
+
+  // Evita permanecer em uma página
+  // que deixou de existir após uma alteração.
+  useEffect(() => {
+    if (
+      currentPage > totalPages
+    ) {
+      setCurrentPage(totalPages);
+    }
+  }, [
+    currentPage,
+    totalPages,
+  ]);
 
   return (
     <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
       {/* Cabeçalho */}
+
       <div className="mb-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+
         <div>
           <h2 className="text-xl font-bold text-slate-800">
             Produtos em Estoque
@@ -113,12 +200,16 @@ function ProductList({
         </div>
 
         <div className="rounded-lg bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-600">
-          {filteredProducts.length} encontrados
+          {filteredProducts.length}{' '}
+          encontrados
         </div>
+
       </div>
 
       {/* Busca */}
+
       <div className="relative mb-4">
+
         <Search
           size={20}
           className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -129,7 +220,9 @@ function ProductList({
           placeholder="Buscar por nome ou categoria..."
           value={search}
           onChange={(event) => {
-            setSearch(event.target.value);
+            setSearch(
+              event.target.value
+            );
           }}
           className="
             w-full
@@ -150,11 +243,15 @@ function ProductList({
             focus:ring-blue-100
           "
         />
+
       </div>
 
       {/* Filtros */}
+
       <div className="mb-5 grid grid-cols-1 gap-3 md:grid-cols-2">
+
         <div className="relative">
+
           <Filter
             size={18}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -190,18 +287,22 @@ function ProductList({
               Todas as categorias
             </option>
 
-            {categories.map((category) => (
-              <option
-                key={category}
-                value={category}
-              >
-                {category}
-              </option>
-            ))}
+            {categories.map(
+              (category) => (
+                <option
+                  key={category}
+                  value={category}
+                >
+                  {category}
+                </option>
+              )
+            )}
           </select>
+
         </div>
 
         <div className="relative">
+
           <ArrowUpDown
             size={18}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"
@@ -210,7 +311,9 @@ function ProductList({
           <select
             value={sortOption}
             onChange={(event) => {
-              setSortOption(event.target.value);
+              setSortOption(
+                event.target.value
+              );
             }}
             className="
               w-full
@@ -251,11 +354,15 @@ function ProductList({
               Maior preço
             </option>
           </select>
+
         </div>
+
       </div>
 
       {/* Estoque baixo */}
+
       <label className="mb-6 flex cursor-pointer items-center gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4">
+
         <input
           type="checkbox"
           checked={showLowStock}
@@ -275,11 +382,15 @@ function ProductList({
         <span className="text-sm font-medium text-slate-700">
           Mostrar somente produtos com estoque baixo
         </span>
+
       </label>
 
       {/* Nenhum produto */}
+
       {sortedProducts.length === 0 ? (
+
         <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
+
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600">
             <PackageSearch size={30} />
           </div>
@@ -291,188 +402,352 @@ function ProductList({
           </h3>
 
           <p className="mt-2 max-w-sm text-sm text-slate-500">
+
             {products.length === 0
               ? canEdit
                 ? 'Cadastre seu primeiro produto usando o formulário ao lado.'
                 : 'Ainda não existem produtos cadastrados no estoque.'
               : 'Tente alterar a busca ou os filtros selecionados.'}
+
           </p>
+
         </div>
+
       ) : (
-        /* Tabela */
-        <div className="overflow-x-auto rounded-xl border border-slate-200">
-          <table className="min-w-full">
-            <thead className="bg-slate-50">
-              <tr className="border-b border-slate-200">
-                <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Produto
-                </th>
 
-                <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Categoria
-                </th>
+        <>
+          {/* Tabela */}
 
-                <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Quantidade
-                </th>
+          <div className="overflow-x-auto rounded-xl border border-slate-200">
 
-                <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
-                  Preço
-                </th>
+            <table className="min-w-full">
 
-                {hasActions && (
-                  <th className="px-5 py-4 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
-                    Ações
+              <thead className="bg-slate-50">
+
+                <tr className="border-b border-slate-200">
+
+                  <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Produto
                   </th>
-                )}
-              </tr>
-            </thead>
 
-            <tbody>
-              {sortedProducts.map((product) => {
-                const lowStock =
-                  product.quantity <= 5;
+                  <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Categoria
+                  </th>
 
-                return (
-                  <tr
-                    key={product.id}
-                    className="border-b border-slate-100 transition duration-150 hover:bg-blue-50/40"
-                  >
-                    {/* Produto */}
-                    <td className="px-5 py-4">
-                      <div className="flex items-center gap-3">
-                        {product.image ? (
-                          <img
-                            src={product.image}
-                            alt={product.name}
-                            className="h-10 w-10 rounded-lg border border-slate-200 object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-600">
-                            {product.name
-                              .charAt(0)
-                              .toUpperCase()}
+                  <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Quantidade
+                  </th>
+
+                  <th className="px-5 py-4 text-left text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Preço
+                  </th>
+
+                  {hasActions && (
+                    <th className="px-5 py-4 text-right text-xs font-bold uppercase tracking-wide text-slate-500">
+                      Ações
+                    </th>
+                  )}
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                {paginatedProducts.map(
+                  (product) => {
+
+                    const lowStock =
+                      product.quantity <= 5;
+
+                    return (
+                      <tr
+                        key={product.id}
+                        className="border-b border-slate-100 transition duration-150 hover:bg-blue-50/40"
+                      >
+
+                        {/* Produto */}
+
+                        <td className="px-5 py-4">
+
+                          <div className="flex items-center gap-3">
+
+                            {product.image ? (
+
+                              <img
+                                src={product.image}
+                                alt={product.name}
+                                className="h-10 w-10 rounded-lg border border-slate-200 object-cover"
+                              />
+
+                            ) : (
+
+                              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-100 font-bold text-blue-600">
+
+                                {product.name
+                                  .charAt(0)
+                                  .toUpperCase()}
+
+                              </div>
+
+                            )}
+
+                            <div>
+
+                              <p className="font-semibold text-slate-800">
+                                {product.name}
+                              </p>
+
+                              {lowStock && (
+
+                                <p className="mt-1 flex items-center gap-1 text-xs font-medium text-red-600">
+
+                                  <AlertTriangle
+                                    size={13}
+                                  />
+
+                                  Estoque baixo
+
+                                </p>
+
+                              )}
+
+                            </div>
+
                           </div>
+
+                        </td>
+
+                        {/* Categoria */}
+
+                        <td className="px-5 py-4">
+
+                          <span className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700">
+                            {product.category}
+                          </span>
+
+                        </td>
+
+                        {/* Quantidade */}
+
+                        <td className="px-5 py-4">
+
+                          <span
+                            className={
+                              lowStock
+                                ? 'font-bold text-red-600'
+                                : 'font-semibold text-green-600'
+                            }
+                          >
+                            {product.quantity}
+                          </span>
+
+                        </td>
+
+                        {/* Preço */}
+
+                        <td className="px-5 py-4 font-semibold text-slate-700">
+
+                          {new Intl.NumberFormat(
+                            'pt-BR',
+                            {
+                              style:
+                                'currency',
+                              currency:
+                                'BRL',
+                            }
+                          ).format(
+                            product.price
+                          )}
+
+                        </td>
+
+                        {/* Ações */}
+
+                        {hasActions && (
+
+                          <td className="px-5 py-4">
+
+                            <div className="flex justify-end gap-2">
+
+                              {canEdit && (
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    editProduct(
+                                      product
+                                    );
+                                  }}
+                                  className="
+                                    flex
+                                    h-10
+                                    w-10
+                                    items-center
+                                    justify-center
+                                    rounded-lg
+                                    bg-blue-50
+                                    text-blue-600
+                                    transition
+                                    hover:bg-blue-100
+                                  "
+                                  aria-label={`Editar ${product.name}`}
+                                  title="Editar produto"
+                                >
+                                  <Pencil
+                                    size={18}
+                                  />
+                                </button>
+
+                              )}
+
+                              {canDelete && (
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setProductToDelete(
+                                      product
+                                    );
+                                  }}
+                                  className="
+                                    flex
+                                    h-10
+                                    w-10
+                                    items-center
+                                    justify-center
+                                    rounded-lg
+                                    bg-red-50
+                                    text-red-600
+                                    transition
+                                    hover:bg-red-100
+                                  "
+                                  aria-label={`Excluir ${product.name}`}
+                                  title="Excluir produto"
+                                >
+                                  <Trash2
+                                    size={18}
+                                  />
+                                </button>
+
+                              )}
+
+                            </div>
+
+                          </td>
+
                         )}
 
-                        <div>
-                          <p className="font-semibold text-slate-800">
-                            {product.name}
-                          </p>
+                      </tr>
+                    );
+                  }
+                )}
 
-                          {lowStock && (
-                            <p className="mt-1 flex items-center gap-1 text-xs font-medium text-red-600">
-                              <AlertTriangle
-                                size={13}
-                              />
-                              Estoque baixo
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </td>
+              </tbody>
 
-                    {/* Categoria */}
-                    <td className="px-5 py-4">
-                      <span className="rounded-full bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700">
-                        {product.category}
-                      </span>
-                    </td>
+            </table>
 
-                    {/* Quantidade */}
-                    <td className="px-5 py-4">
-                      <span
-                        className={
-                          lowStock
-                            ? 'font-bold text-red-600'
-                            : 'font-semibold text-green-600'
-                        }
-                      >
-                        {product.quantity}
-                      </span>
-                    </td>
+          </div>
 
-                    {/* Preço */}
-                    <td className="px-5 py-4 font-semibold text-slate-700">
-                      {new Intl.NumberFormat(
-                        'pt-BR',
-                        {
-                          style: 'currency',
-                          currency: 'BRL',
-                        }
-                      ).format(product.price)}
-                    </td>
+          {/* Paginação */}
 
-                    {/* Ações */}
-                    {hasActions && (
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2">
-                          {canEdit && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                editProduct(product);
-                              }}
-                              className="
-                                flex
-                                h-10
-                                w-10
-                                items-center
-                                justify-center
-                                rounded-lg
-                                bg-blue-50
-                                text-blue-600
-                                transition
-                                hover:bg-blue-100
-                              "
-                              aria-label={`Editar ${product.name}`}
-                              title="Editar produto"
-                            >
-                              <Pencil size={18} />
-                            </button>
-                          )}
+          {totalPages > 1 && (
 
-                          {canDelete && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setProductToDelete(
-                                  product
-                                );
-                              }}
-                              className="
-                                flex
-                                h-10
-                                w-10
-                                items-center
-                                justify-center
-                                rounded-lg
-                                bg-red-50
-                                text-red-600
-                                transition
-                                hover:bg-red-100
-                              "
-                              aria-label={`Excluir ${product.name}`}
-                              title="Excluir produto"
-                            >
-                              <Trash2 size={18} />
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+            <div className="mt-5 flex flex-col items-center justify-between gap-4 sm:flex-row">
+
+              <p className="text-sm text-slate-500 text-center sm:text-left">
+                Mostrando{' '}
+                <span className="font-semibold text-slate-700">
+                  {(currentPage - 1) *
+                    PRODUCTS_PER_PAGE +
+                    1}
+                </span>{' '}
+                a{' '}
+                <span className="font-semibold text-slate-700">
+                  {Math.min(
+                    currentPage *
+                      PRODUCTS_PER_PAGE,
+                    sortedProducts.length
+                  )}
+                </span>{' '}
+                de{' '}
+                <span className="font-semibold text-slate-700">
+                  {sortedProducts.length}
+                </span>{' '}
+                produtos
+              </p>
+
+              <div className="flex items-center justify-center gap-2">
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentPage(
+                      (page) =>
+                        Math.max(
+                          1,
+                          page - 1
+                        )
+                    );
+                  }}
+                  disabled={
+                    currentPage === 1
+                  }
+                  className="flex h-10 items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  <ChevronLeft
+                    size={17}
+                  />
+
+                  Anterior
+                </button>
+
+                <div className="flex h-10 min-w-10 items-center justify-center rounded-lg bg-blue-600 px-3 text-sm font-bold text-white">
+                  {currentPage}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCurrentPage(
+                      (page) =>
+                        Math.min(
+                          totalPages,
+                          page + 1
+                        )
+                    );
+                  }}
+                  disabled={
+                    currentPage ===
+                    totalPages
+                  }
+                  className="flex h-10 items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  Próxima
+
+                  <ChevronRight
+                    size={17}
+                  />
+                </button>
+
+              </div>
+
+            </div>
+
+          )}
+
+        </>
+
       )}
 
       {/* Modal de exclusão */}
+
       {productToDelete && (
+
         <DeleteModal
-          productName={productToDelete.name}
+          productName={
+            productToDelete.name
+          }
           onCancel={() => {
             setProductToDelete(null);
           }}
@@ -484,7 +759,9 @@ function ProductList({
             setProductToDelete(null);
           }}
         />
+
       )}
+
     </section>
   );
 }
