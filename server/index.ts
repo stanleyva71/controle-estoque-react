@@ -1,15 +1,24 @@
 import express from 'express';
+
 import cors from 'cors';
+
 import helmet from 'helmet';
+
 import rateLimit from 'express-rate-limit';
+
 import bcrypt from 'bcrypt';
+
 import jwt from 'jsonwebtoken';
+
 import { PrismaClient, UserRole } from '@prisma/client';
+
 import {
   auth,
   type AuthenticatedRequest,
 } from './middleware/auth';
+
 import { authorize } from './middleware/authorize';
+
 import { prisma } from './lib/prisma';
 
 const app = express();

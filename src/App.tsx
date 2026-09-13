@@ -302,7 +302,11 @@ function App() {
               {currentPage === 'history' && <StockHistory />}
 
               {currentPage === 'categories' && (
-                <Categories products={products} updateProducts={setProducts} />
+                <Categories
+                  products={products}
+                  updateProducts={setProducts}
+                  user={user}
+                />
               )}
 
               {currentPage === 'users' && user?.role === 'ADMIN' && (
