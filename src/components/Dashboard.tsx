@@ -8,15 +8,15 @@ import {
   Send,
   User,
   Trash2,
+  FileDown,
 } from 'lucide-react';
 
 import ReactMarkdown from 'react-markdown';
-
 import { useEffect, useState } from 'react';
 import type { ReactNode, KeyboardEvent } from 'react';
+import jsPDF from 'jspdf';
 
 import { apiFetch } from '../utils/auth';
-
 import type { Product } from '../types/Product';
 
 interface DashboardProps {
@@ -33,7 +33,72 @@ interface StoredChat {
   updatedAt: number;
 }
 
+interface AnalysisStats {
+  totalProducts: number;
+  totalQuantity: number;
+  totalStockValue: number;
+
+  lowStockCount: number;
+
+  lowStockProducts: Array<{
+    id: number;
+    name: string;
+    category: string;
+    quantity: number;
+    price: number;
+  }>;
+
+  zeroStockCount: number;
+
+  highestStockQuantity: number;
+
+  highestStockProducts: Array<{
+    id: number;
+    name: string;
+    category: string;
+    quantity: number;
+    price: number;
+  }>;
+
+  lowestStockQuantity: number;
+
+  lowestStockProducts: Array<{
+    id: number;
+    name: string;
+    category: string;
+    quantity: number;
+    price: number;
+  }>;
+
+  highestPrice: number;
+
+  highestPriceProducts: Array<{
+    id: number;
+    name: string;
+    category: string;
+    quantity: number;
+    price: number;
+  }>;
+
+  lowestPrice: number;
+
+  lowestPriceProducts: Array<{
+    id: number;
+    name: string;
+    category: string;
+    quantity: number;
+    price: number;
+  }>;
+
+  categorySummary: Array<{
+    category: string;
+    products: number;
+    quantity: number;
+  }>;
+}
+
 const CHAT_STORAGE_KEY = 'estoque-chat';
+
 const CHAT_EXPIRATION_TIME = 24 * 60 * 60 * 1000;
 
 const INITIAL_MESSAGE: ChatMessage = {
@@ -43,8 +108,9 @@ const INITIAL_MESSAGE: ChatMessage = {
 };
 
 /**
- * Limpa alguns resíduos que podem eventualmente vir da resposta
- * do modelo de IA antes de enviar o conteúdo para o Markdown.
+ * Limpa alguns resíduos que podem eventualmente vir
+ * da resposta do modelo de IA antes de enviar o conteúdo
+ * para o Markdown.
  */
 function cleanAIResponse(content: string): string {
   return content
@@ -52,6 +118,16 @@ function cleanAIResponse(content: string): string {
     .replace(/svgAssistente/gi, '')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
+}
+
+/**
+ * Formata valores em reais.
+ */
+function formatCurrency(value: number): string {
+  return value.toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  });
 }
 
 /**
@@ -124,6 +200,9 @@ function Dashboard({ products }: DashboardProps) {
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
 
+  const [analysisStats, setAnalysisStats] =
+    useState<AnalysisStats | null>(null);
+
   const [question, setQuestion] = useState('');
   const [loadingChat, setLoadingChat] = useState(false);
 
@@ -146,6 +225,7 @@ function Dashboard({ products }: DashboardProps) {
         parsed.messages.length === 0
       ) {
         localStorage.removeItem(CHAT_STORAGE_KEY);
+
         return [INITIAL_MESSAGE];
       }
 
@@ -161,6 +241,10 @@ function Dashboard({ products }: DashboardProps) {
       return [INITIAL_MESSAGE];
     }
   });
+
+  // =========================
+  // Indicadores do Dashboard
+  // =========================
 
   const totalProducts = products.length;
 
@@ -180,9 +264,10 @@ function Dashboard({ products }: DashboardProps) {
     0
   );
 
-  /**
-   * Salva a conversa sempre que as mensagens mudarem.
-   */
+  // =========================
+  // Persistência do chat
+  // =========================
+
   useEffect(() => {
     try {
       const storedChat: StoredChat = {
@@ -202,9 +287,6 @@ function Dashboard({ products }: DashboardProps) {
     }
   }, [messages]);
 
-  /**
-   * Verifica periodicamente se a conversa expirou.
-   */
   useEffect(() => {
     const expirationCheck = window.setInterval(() => {
       try {
@@ -215,13 +297,17 @@ function Dashboard({ products }: DashboardProps) {
           return;
         }
 
-        const parsed: StoredChat = JSON.parse(stored);
+        const parsed: StoredChat =
+          JSON.parse(stored);
 
         if (
           Date.now() - parsed.updatedAt >
           CHAT_EXPIRATION_TIME
         ) {
-          localStorage.removeItem(CHAT_STORAGE_KEY);
+          localStorage.removeItem(
+            CHAT_STORAGE_KEY
+          );
+
           setMessages([INITIAL_MESSAGE]);
         }
       } catch (error) {
@@ -241,11 +327,19 @@ function Dashboard({ products }: DashboardProps) {
     localStorage.removeItem(CHAT_STORAGE_KEY);
 
     setMessages([INITIAL_MESSAGE]);
+
     setQuestion('');
   }
 
+  // =========================
+  // Análise automática
+  // =========================
+
   async function analyzeStock() {
-    if (loadingAnalysis || products.length === 0) {
+    if (
+      loadingAnalysis ||
+      products.length === 0
+    ) {
       return;
     }
 
@@ -253,6 +347,7 @@ function Dashboard({ products }: DashboardProps) {
       setLoadingAnalysis(true);
       setAnalysis('');
       setAnalysisError('');
+      setAnalysisStats(null);
 
       const response = await apiFetch(
         '/analisar-estoque',
@@ -280,6 +375,10 @@ function Dashboard({ products }: DashboardProps) {
           ? cleanAIResponse(data.analysis)
           : 'A análise não retornou uma resposta válida.'
       );
+
+      if (data.stats) {
+        setAnalysisStats(data.stats);
+      }
     } catch (error) {
       console.error(
         'Erro ao analisar estoque:',
@@ -296,8 +395,13 @@ function Dashboard({ products }: DashboardProps) {
     }
   }
 
+  // =========================
+  // Chat
+  // =========================
+
   async function sendQuestion() {
-    const trimmedQuestion = question.trim();
+    const trimmedQuestion =
+      question.trim();
 
     if (
       !trimmedQuestion ||
@@ -378,11 +482,639 @@ function Dashboard({ products }: DashboardProps) {
     }
   }
 
+  // =========================
+  // Exportação PDF
+  // =========================
+
+  function exportAnalysisPdf() {
+    if (
+      !analysis.trim() ||
+      !analysisStats
+    ) {
+      return;
+    }
+
+    const pdf = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4',
+    });
+
+    const pageWidth =
+      pdf.internal.pageSize.getWidth();
+
+    const pageHeight =
+      pdf.internal.pageSize.getHeight();
+
+    const margin = 18;
+
+    const contentWidth =
+      pageWidth - margin * 2;
+
+    let y = 20;
+
+    function checkPageBreak(
+      height: number
+    ) {
+      if (
+        y + height >
+        pageHeight - 22
+      ) {
+        pdf.addPage();
+        y = 20;
+      }
+    }
+
+    function addWrappedText(
+      text: string,
+      fontSize = 10,
+      lineHeight = 5,
+      bold = false
+    ) {
+      pdf.setFont(
+        'helvetica',
+        bold ? 'bold' : 'normal'
+      );
+
+      pdf.setFontSize(fontSize);
+
+      pdf.setTextColor(
+        51,
+        65,
+        85
+      );
+
+      const lines =
+        pdf.splitTextToSize(
+          text,
+          contentWidth
+        );
+
+      checkPageBreak(
+        lines.length * lineHeight
+      );
+
+      pdf.text(
+        lines,
+        margin,
+        y
+      );
+
+      y +=
+        lines.length *
+        lineHeight;
+    }
+
+    function addSectionTitle(
+      title: string
+    ) {
+      checkPageBreak(12);
+
+      pdf.setFont(
+        'helvetica',
+        'bold'
+      );
+
+      pdf.setFontSize(13);
+
+      pdf.setTextColor(
+        30,
+        41,
+        59
+      );
+
+      pdf.text(
+        title,
+        margin,
+        y
+      );
+
+      y += 7;
+    }
+
+    // =========================
+    // Cabeçalho
+    // =========================
+
+    pdf.setFont(
+      'helvetica',
+      'bold'
+    );
+
+    pdf.setFontSize(20);
+
+    pdf.setTextColor(
+      30,
+      64,
+      175
+    );
+
+    pdf.text(
+      'Relatório de Estoque',
+      margin,
+      y
+    );
+
+    y += 7;
+
+    pdf.setFont(
+      'helvetica',
+      'normal'
+    );
+
+    pdf.setFontSize(9);
+
+    pdf.setTextColor(
+      100,
+      116,
+      139
+    );
+
+    pdf.text(
+      `Gerado em ${new Date().toLocaleString(
+        'pt-BR'
+      )}`,
+      margin,
+      y
+    );
+
+    y += 8;
+
+    pdf.setDrawColor(
+      203,
+      213,
+      225
+    );
+
+    pdf.line(
+      margin,
+      y,
+      pageWidth - margin,
+      y
+    );
+
+    y += 10;
+
+    // =========================
+    // Resumo dos indicadores
+    // =========================
+
+    const cardGap = 4;
+
+    const cardWidth =
+      (contentWidth - cardGap * 3) /
+      4;
+
+    const cardHeight = 24;
+
+    const cards = [
+      {
+        title: 'Produtos',
+        value: String(
+          analysisStats.totalProducts
+        ),
+      },
+      {
+        title: 'Unidades',
+        value: String(
+          analysisStats.totalQuantity
+        ),
+      },
+      {
+        title: 'Estoque baixo',
+        value: String(
+          analysisStats.lowStockCount
+        ),
+      },
+      {
+        title: 'Valor total',
+        value: formatCurrency(
+          analysisStats.totalStockValue
+        ),
+      },
+    ];
+
+    checkPageBreak(
+      cardHeight + 8
+    );
+
+    cards.forEach(
+      (card, index) => {
+        const x =
+          margin +
+          index *
+            (cardWidth + cardGap);
+
+        pdf.setDrawColor(
+          226,
+          232,
+          240
+        );
+
+        pdf.setFillColor(
+          248,
+          250,
+          252
+        );
+
+        pdf.roundedRect(
+          x,
+          y,
+          cardWidth,
+          cardHeight,
+          2,
+          2,
+          'FD'
+        );
+
+        pdf.setFont(
+          'helvetica',
+          'normal'
+        );
+
+        pdf.setFontSize(7);
+
+        pdf.setTextColor(
+          100,
+          116,
+          139
+        );
+
+        pdf.text(
+          card.title,
+          x + 4,
+          y + 7
+        );
+
+        pdf.setFont(
+          'helvetica',
+          'bold'
+        );
+
+        pdf.setFontSize(
+          card.title ===
+            'Valor total'
+            ? 9
+            : 13
+        );
+
+        pdf.setTextColor(
+          30,
+          41,
+          59
+        );
+
+        pdf.text(
+          card.value,
+          x + 4,
+          y + 17
+        );
+      }
+    );
+
+    y += cardHeight + 10;
+
+    // =========================
+    // Visão Geral
+    // =========================
+
+    addSectionTitle(
+      'Visão Geral'
+    );
+
+    addWrappedText(
+      `O estoque possui ${analysisStats.totalProducts} produtos cadastrados, totalizando ${analysisStats.totalQuantity} unidades, com valor total de ${formatCurrency(
+        analysisStats.totalStockValue
+      )}.`
+    );
+
+    const highestNames =
+      analysisStats.highestStockProducts
+        .map(
+          (product) =>
+            `${product.name} (${product.quantity} unidades)`
+        )
+        .join(', ');
+
+    addWrappedText(
+      `Maior quantidade em estoque: ${highestNames}.`
+    );
+
+    // =========================
+    // Pontos de atenção
+    // =========================
+
+    addSectionTitle(
+      'Pontos de Atenção'
+    );
+
+    if (
+      analysisStats.lowStockProducts
+        ?.length > 0
+    ) {
+      for (
+        const product of
+          analysisStats.lowStockProducts
+      ) {
+        addWrappedText(
+          `• ${product.name}: ${product.quantity} unidade(s) — estoque baixo.`
+        );
+      }
+    } else {
+      addWrappedText(
+        'Nenhum produto está com estoque baixo.'
+      );
+    }
+
+    // =========================
+    // Informações relevantes
+    // =========================
+
+    addSectionTitle(
+      'Informações Relevantes'
+    );
+
+    const lowestNames =
+      analysisStats.lowestStockProducts
+        .map(
+          (product) =>
+            `${product.name} (${product.quantity} unidades)`
+        )
+        .join(', ');
+
+    const highestPriceNames =
+      analysisStats.highestPriceProducts
+        .map(
+          (product) =>
+            `${product.name} (${formatCurrency(
+              product.price
+            )})`
+        )
+        .join(', ');
+
+    const lowestPriceNames =
+      analysisStats.lowestPriceProducts
+        .map(
+          (product) =>
+            `${product.name} (${formatCurrency(
+              product.price
+            )})`
+        )
+        .join(', ');
+
+    addWrappedText(
+      `Menor quantidade em estoque: ${lowestNames}.`
+    );
+
+    addWrappedText(
+      `Maior preço cadastrado: ${highestPriceNames}.`
+    );
+
+    addWrappedText(
+      `Menor preço cadastrado: ${lowestPriceNames}.`
+    );
+
+    // =========================
+    // Categorias
+    // =========================
+
+    if (
+      analysisStats.categorySummary
+        ?.length > 0
+    ) {
+      addSectionTitle(
+        'Categorias'
+      );
+
+      for (
+        const category of
+          analysisStats.categorySummary
+      ) {
+        addWrappedText(
+          `• ${category.category}: ${category.products} produto(s), ${category.quantity} unidade(s).`
+        );
+      }
+    }
+
+    // =========================
+    // Análise da IA
+    // =========================
+
+    const cleanedAnalysis =
+      cleanAIResponse(
+        analysis
+      );
+
+    const analysisLines =
+      cleanedAnalysis
+        .split('\n')
+        .filter(
+          (line) =>
+            line.trim().length > 0
+        );
+
+    const aiSections: {
+      title: string;
+      content: string[];
+    }[] = [];
+
+    let currentSection:
+      | {
+          title: string;
+          content: string[];
+        }
+      | null = null;
+
+    for (
+      const line of
+        analysisLines
+    ) {
+      const trimmed =
+        line.trim();
+
+      if (
+        trimmed.startsWith(
+          '### '
+        )
+      ) {
+        if (
+          currentSection
+        ) {
+          aiSections.push(
+            currentSection
+          );
+        }
+
+        currentSection = {
+          title: trimmed.replace(
+            /^###\s*/,
+            ''
+          ),
+          content: [],
+        };
+      } else if (
+        currentSection
+      ) {
+        currentSection.content.push(
+          trimmed
+        );
+      }
+    }
+
+    if (currentSection) {
+      aiSections.push(
+        currentSection
+      );
+    }
+
+    // Mostra somente partes úteis
+    // que não sejam duplicações dos
+    // indicadores já calculados.
+
+    const aiRelevantSections =
+      aiSections.filter(
+        (section) =>
+          section.title !==
+            'Visão Geral' &&
+          section.title !==
+            'Pontos de Atenção' &&
+          section.title !==
+            'Informações Relevantes'
+      );
+
+    if (
+      aiRelevantSections.length >
+      0
+    ) {
+      for (
+        const section of
+          aiRelevantSections
+      ) {
+        pdf.setFont(
+          'helvetica',
+          'bold'
+        );
+
+        pdf.setFontSize(11);
+
+        pdf.setTextColor(
+          51,
+          65,
+          85
+        );
+
+        checkPageBreak(9);
+
+        pdf.text(
+          section.title,
+          margin,
+          y
+        );
+
+        y += 6;
+
+        for (
+          const contentLine of
+            section.content
+        ) {
+          if (
+            !contentLine
+          ) {
+            y += 3;
+            continue;
+          }
+
+          const cleanLine =
+            contentLine
+              .replace(
+                /\*\*/g,
+                ''
+              )
+              .replace(
+                /\*/g,
+                ''
+              )
+              .replace(
+                /^[-•]\s*/,
+                '• '
+              );
+
+          addWrappedText(
+            cleanLine,
+            10,
+            5
+          );
+
+          y += 1;
+        }
+
+        y += 2;
+      }
+    }
+
+    // =========================
+    // Rodapé
+    // =========================
+
+    const totalPages =
+      pdf.getNumberOfPages();
+
+    for (
+      let page = 1;
+      page <= totalPages;
+      page++
+    ) {
+      pdf.setPage(page);
+
+      pdf.setFont(
+        'helvetica',
+        'normal'
+      );
+
+      pdf.setFontSize(8);
+
+      pdf.setTextColor(
+        100,
+        116,
+        139
+      );
+
+      pdf.text(
+        `Sistema de Controle de Estoque`,
+        margin,
+        pageHeight - 10
+      );
+
+      pdf.text(
+        `Página ${page} de ${totalPages}`,
+        pageWidth - margin,
+        pageHeight - 10,
+        {
+          align: 'right',
+        }
+      );
+    }
+
+    // =========================
+    // Salvar
+    // =========================
+
+    const date =
+      new Date()
+        .toISOString()
+        .slice(0, 10);
+
+    pdf.save(
+      `relatorio-estoque-${date}.pdf`
+    );
+  }
+
   function handleKeyDown(
     event: KeyboardEvent<HTMLInputElement>
   ) {
     if (event.key === 'Enter') {
       event.preventDefault();
+
       sendQuestion();
     }
   }
@@ -395,6 +1127,7 @@ function Dashboard({ products }: DashboardProps) {
 
       <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
         {/* Total de produtos */}
+
         <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-600">
             <Package size={30} />
@@ -416,6 +1149,7 @@ function Dashboard({ products }: DashboardProps) {
         </div>
 
         {/* Estoque baixo */}
+
         <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-amber-100 text-amber-500">
             <TriangleAlert size={30} />
@@ -437,6 +1171,7 @@ function Dashboard({ products }: DashboardProps) {
         </div>
 
         {/* Categorias */}
+
         <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600">
             <Tags size={30} />
@@ -458,6 +1193,7 @@ function Dashboard({ products }: DashboardProps) {
         </div>
 
         {/* Valor total */}
+
         <div className="flex items-center gap-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-md">
           <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-100 text-blue-700">
             <DollarSign size={30} />
@@ -469,12 +1205,8 @@ function Dashboard({ products }: DashboardProps) {
             </p>
 
             <p className="mt-1 text-2xl font-bold text-slate-800">
-              {totalStockValue.toLocaleString(
-                'pt-BR',
-                {
-                  style: 'currency',
-                  currency: 'BRL',
-                }
+              {formatCurrency(
+                totalStockValue
               )}
             </p>
 
@@ -511,7 +1243,9 @@ function Dashboard({ products }: DashboardProps) {
 
           <button
             type="button"
-            onClick={clearConversation}
+            onClick={
+              clearConversation
+            }
             disabled={
               messages.length <= 1 &&
               !loadingChat
@@ -525,56 +1259,70 @@ function Dashboard({ products }: DashboardProps) {
         </div>
 
         {/* Área do chat */}
+
         <div className="mt-5 h-[420px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4">
           <div className="space-y-4">
-            {messages.map((message, index) => (
-              <div
-                key={`${message.role}-${index}`}
-                className={`flex ${
-                  message.role === 'user'
-                    ? 'justify-end'
-                    : 'justify-start'
-                }`}
-              >
+            {messages.map(
+              (
+                message,
+                index
+              ) => (
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                    message.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'border border-slate-200 bg-white text-slate-700'
+                  key={`${message.role}-${index}`}
+                  className={`flex ${
+                    message.role ===
+                    'user'
+                      ? 'justify-end'
+                      : 'justify-start'
                   }`}
                 >
-                  <div className="mb-2 flex items-center gap-2 text-xs font-semibold">
-                    {message.role === 'user' ? (
-                      <>
-                        <User size={14} />
-                        Você
-                      </>
+                  <div
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                      message.role ===
+                      'user'
+                        ? 'bg-blue-600 text-white'
+                        : 'border border-slate-200 bg-white text-slate-700'
+                    }`}
+                  >
+                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold">
+                      {message.role ===
+                      'user' ? (
+                        <>
+                          <User size={14} />
+                          Você
+                        </>
+                      ) : (
+                        <>
+                          <Bot size={14} />
+                          Assistente
+                        </>
+                      )}
+                    </div>
+
+                    {message.role ===
+                    'assistant' ? (
+                      <div className="text-sm leading-6">
+                        <ReactMarkdown
+                          components={
+                            markdownComponents
+                          }
+                        >
+                          {cleanAIResponse(
+                            message.content
+                          )}
+                        </ReactMarkdown>
+                      </div>
                     ) : (
-                      <>
-                        <Bot size={14} />
-                        Assistente
-                      </>
+                      <p className="whitespace-pre-wrap text-sm leading-6 text-white">
+                        {
+                          message.content
+                        }
+                      </p>
                     )}
                   </div>
-
-                  {message.role === 'assistant' ? (
-                    <div className="text-sm leading-6">
-                      <ReactMarkdown
-                        components={markdownComponents}
-                      >
-                        {cleanAIResponse(
-                          message.content
-                        )}
-                      </ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p className="whitespace-pre-wrap text-sm leading-6 text-white">
-                      {message.content}
-                    </p>
-                  )}
                 </div>
-              </div>
-            ))}
+              )
+            )}
 
             {loadingChat && (
               <div className="flex justify-start">
@@ -591,7 +1339,9 @@ function Dashboard({ products }: DashboardProps) {
         </div>
 
         {/* Campo de pergunta */}
-        {products.length === 0 ? (
+
+        {products.length ===
+        0 ? (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
             Cadastre pelo menos um produto para conversar
             com a IA.
@@ -601,18 +1351,28 @@ function Dashboard({ products }: DashboardProps) {
             <input
               type="text"
               value={question}
-              onChange={(event) =>
-                setQuestion(event.target.value)
+              onChange={(
+                event
+              ) =>
+                setQuestion(
+                  event.target.value
+                )
               }
-              onKeyDown={handleKeyDown}
+              onKeyDown={
+                handleKeyDown
+              }
               placeholder="Ex.: Quais produtos precisam de reposição?"
-              disabled={loadingChat}
+              disabled={
+                loadingChat
+              }
               className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
             />
 
             <button
               type="button"
-              onClick={sendQuestion}
+              onClick={
+                sendQuestion
+              }
               disabled={
                 !question.trim() ||
                 loadingChat
@@ -633,14 +1393,34 @@ function Dashboard({ products }: DashboardProps) {
           </div>
         )}
 
-        {/* Botão de análise automática */}
-        <div className="mt-4 flex justify-end">
+        {/* Botões da análise */}
+
+        <div className="mt-4 flex justify-end gap-3">
+          {analysis && (
+            <button
+              type="button"
+              onClick={
+                exportAnalysisPdf
+              }
+              disabled={
+                !analysisStats
+              }
+              className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FileDown size={18} />
+              Exportar PDF
+            </button>
+          )}
+
           <button
             type="button"
-            onClick={analyzeStock}
+            onClick={
+              analyzeStock
+            }
             disabled={
               loadingAnalysis ||
-              products.length === 0
+              products.length ===
+                0
             }
             className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
@@ -662,13 +1442,18 @@ function Dashboard({ products }: DashboardProps) {
         </div>
 
         {/* Erro da análise */}
+
         {analysisError && (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            <strong>Erro:</strong> {analysisError}
+            <strong>
+              Erro:
+            </strong>{' '}
+            {analysisError}
           </div>
         )}
 
         {/* Resultado da análise */}
+
         {analysis && (
           <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-5">
             <h3 className="mb-3 font-bold text-blue-900">
@@ -677,9 +1462,13 @@ function Dashboard({ products }: DashboardProps) {
 
             <div className="text-sm leading-7 text-slate-700">
               <ReactMarkdown
-                components={markdownComponents}
+                components={
+                  markdownComponents
+                }
               >
-                {cleanAIResponse(analysis)}
+                {cleanAIResponse(
+                  analysis
+                )}
               </ReactMarkdown>
             </div>
           </div>

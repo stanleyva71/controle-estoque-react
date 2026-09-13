@@ -42,7 +42,7 @@ const USERS_PER_PAGE = 5;
 
 function Users({ onToast }: UsersProps) {
   const [users, setUsers] = useState<User[]>([]);
-
+  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -53,9 +53,9 @@ function Users({ onToast }: UsersProps) {
   const [errorMessage, setErrorMessage] = useState('');
 
   const [search, setSearch] = useState('');
-  const [selectedRole, setSelectedRole] = useState<
-    User['role'] | 'todos'
-  >('todos');
+  const [selectedRole, setSelectedRole] = useState<User['role'] | 'todos'>(
+    'todos'
+  );
 
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -82,9 +82,7 @@ function Users({ onToast }: UsersProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || 'Não foi possível carregar os usuários.'
-        );
+        throw new Error(data.error || 'Não foi possível carregar os usuários.');
       }
 
       setUsers(data);
@@ -138,9 +136,7 @@ function Users({ onToast }: UsersProps) {
     setShowForm(true);
   }
 
-  async function handleSubmit(
-    event: FormEvent<HTMLFormElement>
-  ) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     if (!formData.name.trim() || !formData.email.trim()) {
@@ -158,9 +154,7 @@ function Users({ onToast }: UsersProps) {
       formData.password.length > 0 &&
       formData.password.length < 6
     ) {
-      showError(
-        'A nova senha deve possuir pelo menos 6 caracteres.'
-      );
+      showError('A nova senha deve possuir pelo menos 6 caracteres.');
       return;
     }
 
@@ -182,9 +176,7 @@ function Users({ onToast }: UsersProps) {
         payload.password = formData.password;
       }
 
-      const endpoint = editingUser
-        ? `/users/${editingUser.id}`
-        : '/users';
+      const endpoint = editingUser ? `/users/${editingUser.id}` : '/users';
 
       const method = editingUser ? 'PUT' : 'POST';
 
@@ -199,16 +191,12 @@ function Users({ onToast }: UsersProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || 'Não foi possível salvar o usuário.'
-        );
+        throw new Error(data.error || 'Não foi possível salvar o usuário.');
       }
 
       if (editingUser) {
         setUsers((currentUsers) =>
-          currentUsers.map((user) =>
-            user.id === editingUser.id ? data : user
-          )
+          currentUsers.map((user) => (user.id === editingUser.id ? data : user))
         );
 
         onToast('Usuário atualizado com sucesso.');
@@ -239,14 +227,6 @@ function Users({ onToast }: UsersProps) {
   // =========================
 
   async function handleDelete(user: User) {
-    const confirmed = window.confirm(
-      `Tem certeza que deseja excluir o usuário "${user.name}"?`
-    );
-
-    if (!confirmed) {
-      return;
-    }
-
     try {
       setDeletingId(user.id);
 
@@ -257,20 +237,14 @@ function Users({ onToast }: UsersProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || 'Não foi possível excluir o usuário.'
-        );
+        throw new Error(data.error || 'Não foi possível excluir o usuário.');
       }
 
       setUsers((currentUsers) =>
-        currentUsers.filter(
-          (currentUser) => currentUser.id !== user.id
-        )
+        currentUsers.filter((currentUser) => currentUser.id !== user.id)
       );
 
-      onToast(
-        data.message || 'Usuário excluído com sucesso.'
-      );
+      onToast(data.message || 'Usuário excluído com sucesso.');
     } catch (error) {
       console.error('ERRO AO EXCLUIR USUÁRIO:', error);
 
@@ -281,6 +255,7 @@ function Users({ onToast }: UsersProps) {
       );
     } finally {
       setDeletingId(null);
+      setDeleteTarget(null);
     }
   }
 
@@ -331,8 +306,7 @@ function Users({ onToast }: UsersProps) {
         user.email.toLowerCase().includes(normalizedSearch);
 
       const matchesRole =
-        selectedRole === 'todos' ||
-        user.role === selectedRole;
+        selectedRole === 'todos' || user.role === selectedRole;
 
       return matchesSearch && matchesRole;
     });
@@ -342,17 +316,12 @@ function Users({ onToast }: UsersProps) {
   // Paginação
   // =========================
 
-  const totalPages = Math.ceil(
-    filteredUsers.length / USERS_PER_PAGE
-  );
+  const totalPages = Math.ceil(filteredUsers.length / USERS_PER_PAGE);
 
   const paginatedUsers = useMemo(() => {
     const startIndex = (currentPage - 1) * USERS_PER_PAGE;
 
-    return filteredUsers.slice(
-      startIndex,
-      startIndex + USERS_PER_PAGE
-    );
+    return filteredUsers.slice(startIndex, startIndex + USERS_PER_PAGE);
   }, [filteredUsers, currentPage]);
 
   // Voltar para página 1 quando os filtros mudarem
@@ -373,8 +342,7 @@ function Users({ onToast }: UsersProps) {
     setCurrentPage(1);
   }
 
-  const hasActiveFilters =
-    search.trim() !== '' || selectedRole !== 'todos';
+  const hasActiveFilters = search.trim() !== '' || selectedRole !== 'todos';
 
   return (
     <>
@@ -398,9 +366,7 @@ function Users({ onToast }: UsersProps) {
               </h2>
             </div>
 
-            <p className="text-sm leading-6 text-slate-600">
-              {errorMessage}
-            </p>
+            <p className="text-sm leading-6 text-slate-600">{errorMessage}</p>
 
             <div className="mt-6 flex justify-end">
               <button
@@ -409,6 +375,75 @@ function Users({ onToast }: UsersProps) {
                 className="rounded-xl bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800"
               >
                 Entendi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmação de exclusão */}
+      {deleteTarget && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+          onClick={() => {
+            if (deletingId === null) {
+              setDeleteTarget(null);
+            }
+          }}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="mb-5 flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-red-100 text-red-600">
+                <Trash2 size={22} />
+              </div>
+
+              <div>
+                <h2 className="text-lg font-bold text-slate-900">
+                  Excluir usuário?
+                </h2>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Esta ação não poderá ser desfeita.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p className="font-semibold text-slate-800">
+                {deleteTarget.name}
+              </p>
+
+              <p className="mt-1 text-sm text-slate-500">
+                {deleteTarget.email}
+              </p>
+            </div>
+
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deletingId !== null}
+                className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleDelete(deleteTarget)}
+                disabled={deletingId !== null}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {deletingId === deleteTarget.id && (
+                  <Loader2 size={17} className="animate-spin" />
+                )}
+
+                {deletingId === deleteTarget.id
+                  ? 'Excluindo...'
+                  : 'Excluir usuário'}
               </button>
             </div>
           </div>
@@ -552,17 +587,11 @@ function Users({ onToast }: UsersProps) {
                   disabled={saving}
                   className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-200 disabled:bg-slate-100"
                 >
-                  <option value="ADMIN">
-                    Administrador
-                  </option>
+                  <option value="ADMIN">Administrador</option>
 
-                  <option value="OPERADOR">
-                    Operador
-                  </option>
+                  <option value="OPERADOR">Operador</option>
 
-                  <option value="VISUALIZACAO">
-                    Visualização
-                  </option>
+                  <option value="VISUALIZACAO">Visualização</option>
                 </select>
               </div>
 
@@ -581,12 +610,7 @@ function Users({ onToast }: UsersProps) {
                   disabled={saving}
                   className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  {saving && (
-                    <Loader2
-                      size={17}
-                      className="animate-spin"
-                    />
-                  )}
+                  {saving && <Loader2 size={17} className="animate-spin" />}
 
                   {saving
                     ? 'Salvando...'
@@ -604,9 +628,7 @@ function Users({ onToast }: UsersProps) {
           <div className="mb-4 flex items-center gap-2">
             <Filter size={19} className="text-slate-600" />
 
-            <h2 className="font-bold text-slate-800">
-              Filtros
-            </h2>
+            <h2 className="font-bold text-slate-800">Filtros</h2>
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -629,9 +651,7 @@ function Users({ onToast }: UsersProps) {
                   id="user-search"
                   type="text"
                   value={search}
-                  onChange={(event) =>
-                    setSearch(event.target.value)
-                  }
+                  onChange={(event) => setSearch(event.target.value)}
                   placeholder="Nome ou e-mail..."
                   className="w-full rounded-xl border border-slate-300 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
                 />
@@ -651,27 +671,17 @@ function Users({ onToast }: UsersProps) {
                 id="user-role"
                 value={selectedRole}
                 onChange={(event) =>
-                  setSelectedRole(
-                    event.target.value as User['role'] | 'todos'
-                  )
+                  setSelectedRole(event.target.value as User['role'] | 'todos')
                 }
                 className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-slate-500 focus:ring-4 focus:ring-slate-100"
               >
-                <option value="todos">
-                  Todos os perfis
-                </option>
+                <option value="todos">Todos os perfis</option>
 
-                <option value="ADMIN">
-                  Administrador
-                </option>
+                <option value="ADMIN">Administrador</option>
 
-                <option value="OPERADOR">
-                  Operador
-                </option>
+                <option value="OPERADOR">Operador</option>
 
-                <option value="VISUALIZACAO">
-                  Visualização
-                </option>
+                <option value="VISUALIZACAO">Visualização</option>
               </select>
             </div>
           </div>
@@ -693,17 +703,11 @@ function Users({ onToast }: UsersProps) {
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           {loading ? (
             <div className="flex min-h-48 items-center justify-center">
-              <Loader2
-                size={28}
-                className="animate-spin text-slate-500"
-              />
+              <Loader2 size={28} className="animate-spin text-slate-500" />
             </div>
           ) : users.length === 0 ? (
             <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center">
-              <UserRound
-                size={40}
-                className="mb-3 text-slate-300"
-              />
+              <UserRound size={40} className="mb-3 text-slate-300" />
 
               <h3 className="text-base font-semibold text-slate-800">
                 Nenhum usuário encontrado
@@ -715,10 +719,7 @@ function Users({ onToast }: UsersProps) {
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="flex min-h-48 flex-col items-center justify-center px-6 text-center">
-              <Search
-                size={40}
-                className="mb-3 text-slate-300"
-              />
+              <Search size={40} className="mb-3 text-slate-300" />
 
               <h3 className="text-base font-semibold text-slate-800">
                 Nenhum usuário encontrado
@@ -801,9 +802,7 @@ function Users({ onToast }: UsersProps) {
                         </td>
 
                         <td className="px-5 py-4 text-sm text-slate-500">
-                          {new Date(
-                            user.createdAt
-                          ).toLocaleDateString('pt-BR')}
+                          {new Date(user.createdAt).toLocaleDateString('pt-BR')}
                         </td>
 
                         <td className="px-5 py-4">
@@ -820,19 +819,15 @@ function Users({ onToast }: UsersProps) {
 
                             <button
                               type="button"
-                              onClick={() => handleDelete(user)}
+                              onClick={() => setDeleteTarget(user)}
                               disabled={deletingId !== null}
                               className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               {deletingId === user.id ? (
-                                <Loader2
-                                  size={16}
-                                  className="animate-spin"
-                                />
+                                <Loader2 size={16} className="animate-spin" />
                               ) : (
                                 <Trash2 size={16} />
                               )}
-
                               Excluir
                             </button>
                           </div>
@@ -869,9 +864,7 @@ function Users({ onToast }: UsersProps) {
                     <button
                       type="button"
                       onClick={() =>
-                        setCurrentPage((page) =>
-                          Math.max(page - 1, 1)
-                        )
+                        setCurrentPage((page) => Math.max(page - 1, 1))
                       }
                       disabled={currentPage === 1}
                       className="flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
@@ -887,9 +880,7 @@ function Users({ onToast }: UsersProps) {
                     <button
                       type="button"
                       onClick={() =>
-                        setCurrentPage((page) =>
-                          Math.min(page + 1, totalPages)
-                        )
+                        setCurrentPage((page) => Math.min(page + 1, totalPages))
                       }
                       disabled={currentPage === totalPages}
                       className="flex items-center gap-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
