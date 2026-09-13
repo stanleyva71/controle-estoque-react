@@ -14,6 +14,15 @@ import type { AuthUser } from '../utils/auth';
 
 interface SidebarProps {
   user: AuthUser | null;
+
+  activePage:
+    | 'dashboard'
+    | 'products'
+    | 'newProduct'
+    | 'history'
+    | 'categories'
+    | 'users';
+
   onDashboard: () => void;
   onProducts: () => void;
   onCategories: () => void;
@@ -24,6 +33,7 @@ interface SidebarProps {
 
 function Sidebar({
   user,
+  activePage,
   onDashboard,
   onProducts,
   onNewProduct,
@@ -31,9 +41,26 @@ function Sidebar({
   onHistory,
   onUsers,
 }: SidebarProps) {
+  function getButtonClass(
+    page:
+      | 'dashboard'
+      | 'products'
+      | 'newProduct'
+      | 'history'
+      | 'categories'
+      | 'users'
+  ) {
+    return `flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left font-medium transition ${
+      activePage === page
+        ? 'bg-blue-600 text-white shadow-lg'
+        : 'text-slate-300 hover:bg-slate-800 hover:text-white'
+    }`;
+  }
+
   return (
     <aside className="flex w-full flex-col bg-slate-950 text-white lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:flex-shrink-0 lg:border-r lg:border-slate-800">
       {/* Logo */}
+
       <div className="flex items-center gap-3 border-b border-slate-800 px-6 py-7">
         <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600">
           <Box size={24} />
@@ -45,67 +72,81 @@ function Sidebar({
       </div>
 
       {/* Menu */}
+
       <nav className="flex-1 space-y-2 px-4 py-6">
+        {/* Dashboard */}
+
         <button
           type="button"
           onClick={onDashboard}
-          className="flex w-full items-center gap-4 rounded-xl bg-blue-600 px-5 py-4 text-left font-medium shadow-lg"
+          className={getButtonClass('dashboard')}
         >
           <ChartNoAxesCombined size={22} />
           Dashboard
         </button>
 
+        {/* Produtos */}
+
         <button
           type="button"
           onClick={onProducts}
-          className="flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left text-slate-300 transition hover:bg-slate-800 hover:text-white"
+          className={getButtonClass('products')}
         >
           <Package size={22} />
           Produtos
         </button>
 
+        {/* Novo Produto */}
+
         <button
           type="button"
           onClick={onNewProduct}
-          className="flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left text-slate-300 transition hover:bg-slate-800 hover:text-white"
+          className={getButtonClass('newProduct')}
         >
           <Plus size={22} />
           Novo Produto
         </button>
 
+        {/* Categorias */}
+
         <button
           type="button"
           onClick={onCategories}
-          className="flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left text-slate-300 transition hover:bg-slate-800 hover:text-white"
+          className={getButtonClass('categories')}
         >
           <Tags size={22} />
           Categorias
         </button>
 
+        {/* Histórico */}
+
         <button
           type="button"
           onClick={onHistory}
-          className="flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left text-slate-300 transition hover:bg-slate-800 hover:text-white"
+          className={getButtonClass('history')}
         >
           <FileText size={22} />
           Histórico de Movimentações
         </button>
 
-        {/* Somente ADMIN */}
+        {/* Usuários - somente ADMIN */}
+
         {user?.role === 'ADMIN' && (
           <button
             type="button"
             onClick={onUsers}
-            className="flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left text-slate-300 transition hover:bg-slate-800 hover:text-white"
+            className={getButtonClass('users')}
           >
             <Users size={22} />
             Usuários
           </button>
         )}
 
+        {/* Configurações */}
+
         <button
           type="button"
-          className="flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left text-slate-300 transition hover:bg-slate-800 hover:text-white"
+          className="flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white"
         >
           <Settings size={22} />
           Configurações
@@ -113,6 +154,7 @@ function Sidebar({
       </nav>
 
       {/* Usuário */}
+
       <div className="m-4 flex items-center gap-3 rounded-xl border border-slate-700 p-4">
         <div className="flex h-11 w-11 items-center justify-center rounded-full bg-slate-700">
           <User size={22} />
