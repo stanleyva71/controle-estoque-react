@@ -13,7 +13,7 @@ interface LoginResponse {
 const TOKEN_KEY = 'estoque-auth-token';
 const USER_KEY = 'estoque-auth-user';
 
-const API_URL = 'http://localhost:3001/api';
+const API_URL = import.meta.env.VITE_API_URL;
 
 // =========================
 // Login
