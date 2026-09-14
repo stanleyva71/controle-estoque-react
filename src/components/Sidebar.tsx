@@ -9,7 +9,6 @@ import {
   User,
   Users,
 } from 'lucide-react';
-
 import type { AuthUser } from '../utils/auth';
 
 interface SidebarProps {
@@ -21,7 +20,8 @@ interface SidebarProps {
     | 'newProduct'
     | 'history'
     | 'categories'
-    | 'users';
+    | 'users'
+    | 'settings';
 
   onDashboard: () => void;
   onProducts: () => void;
@@ -29,6 +29,7 @@ interface SidebarProps {
   onNewProduct: () => void;
   onHistory: () => void;
   onUsers: () => void;
+  onSettings: () => void;
 }
 
 function Sidebar({
@@ -40,6 +41,7 @@ function Sidebar({
   onCategories,
   onHistory,
   onUsers,
+  onSettings,
 }: SidebarProps) {
   function getButtonClass(
     page:
@@ -49,6 +51,7 @@ function Sidebar({
       | 'history'
       | 'categories'
       | 'users'
+      | 'settings'
   ) {
     return `flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left font-medium transition ${
       activePage === page
@@ -66,9 +69,7 @@ function Sidebar({
           <Box size={24} />
         </div>
 
-        <h1 className="text-2xl font-bold">
-          Estoque
-        </h1>
+        <h1 className="text-2xl font-bold">Estoque</h1>
       </div>
 
       {/* Menu */}
@@ -146,10 +147,11 @@ function Sidebar({
 
         <button
           type="button"
-          className="flex w-full items-center gap-4 rounded-xl px-5 py-4 text-left font-medium text-slate-300 transition hover:bg-slate-800 hover:text-white"
+          onClick={onSettings}
+          className={getButtonClass('settings')}
         >
-          <Settings size={22} />
-          Configurações
+          <Settings size={21} />
+          <span>Configurações</span>
         </button>
       </nav>
 
@@ -161,9 +163,7 @@ function Sidebar({
         </div>
 
         <div className="min-w-0">
-          <p className="truncate font-medium">
-            {user?.name || 'Usuário'}
-          </p>
+          <p className="truncate font-medium">{user?.name || 'Usuário'}</p>
 
           <p className="truncate text-sm text-slate-400">
             {user?.role === 'ADMIN'

@@ -9,6 +9,7 @@ import StockHistory from './pages/StockHistory';
 import Products from './pages/Products';
 import Categories from './components/Categories';
 import Login from './pages/Login';
+import Settings from './pages/Settings';
 
 import {
   login,
@@ -25,24 +26,20 @@ function App() {
   const [products, setProducts] = useState<Product[]>([]);
 
   const [currentPage, setCurrentPage] = useState<
-    'dashboard' | 'products' | 'history' | 'categories' | 'users'
+    'dashboard' | 'products' | 'history' | 'categories' | 'users' | 'settings'
   >('dashboard');
 
   const [toastMessage, setToastMessage] = useState('');
 
-  const [editingProduct, setEditingProduct] =
-    useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
-  const [focusProductForm, setFocusProductForm] =
-    useState(false);
+  const [focusProductForm, setFocusProductForm] = useState(false);
 
   const [loading, setLoading] = useState(true);
 
-  const [authenticated, setAuthenticated] =
-    useState(isAuthenticated());
+  const [authenticated, setAuthenticated] = useState(isAuthenticated());
 
-  const [user, setUser] =
-    useState<AuthUser | null>(getUser());
+  const [user, setUser] = useState<AuthUser | null>(getUser());
 
   useEffect(() => {
     function handleAuthLogout() {
@@ -50,16 +47,10 @@ function App() {
       setAuthenticated(false);
     }
 
-    window.addEventListener(
-      'auth:logout',
-      handleAuthLogout
-    );
+    window.addEventListener('auth:logout', handleAuthLogout);
 
     return () => {
-      window.removeEventListener(
-        'auth:logout',
-        handleAuthLogout
-      );
+      window.removeEventListener('auth:logout', handleAuthLogout);
     };
   }, []);
 
@@ -80,20 +71,14 @@ function App() {
         const response = await apiFetch('/products');
 
         if (!response.ok) {
-          throw new Error(
-            'Não foi possível carregar os produtos.'
-          );
+          throw new Error('Não foi possível carregar os produtos.');
         }
 
-        const data: Product[] =
-          await response.json();
+        const data: Product[] = await response.json();
 
         setProducts(data);
       } catch (error) {
-        console.error(
-          'ERRO AO CARREGAR PRODUTOS:',
-          error
-        );
+        console.error('ERRO AO CARREGAR PRODUTOS:', error);
 
         setToastMessage(
           error instanceof Error
@@ -112,12 +97,8 @@ function App() {
   // Autenticação
   // =========================
 
-  async function handleLogin(
-    email: string,
-    password: string
-  ) {
-    const data =
-      await login(email, password);
+  async function handleLogin(email: string, password: string) {
+    const data = await login(email, password);
 
     setUser(data.user);
     setAuthenticated(true);
@@ -134,52 +115,33 @@ function App() {
   // Criar produto
   // =========================
 
-  async function addProduct(
-    product: Product
-  ) {
+  async function addProduct(product: Product) {
     try {
-      const response = await apiFetch(
-        '/products',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            name: product.name,
-            category: product.category,
-            quantity: product.quantity,
-            price: product.price,
-            image: product.image,
-          }),
-        }
-      );
+      const response = await apiFetch('/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: product.name,
+          category: product.category,
+          quantity: product.quantity,
+          price: product.price,
+          image: product.image,
+        }),
+      });
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error ||
-            'Não foi possível criar o produto.'
-        );
+        throw new Error(data.error || 'Não foi possível criar o produto.');
       }
 
-      setProducts(
-        (currentProducts) => [
-          data,
-          ...currentProducts,
-        ]
-      );
+      setProducts((currentProducts) => [data, ...currentProducts]);
 
-      setToastMessage(
-        `"${data.name}" foi adicionado com sucesso!`
-      );
+      setToastMessage(`"${data.name}" foi adicionado com sucesso!`);
     } catch (error) {
-      console.error(
-        'ERRO AO CRIAR PRODUTO:',
-        error
-      );
+      console.error('ERRO AO CRIAR PRODUTO:', error);
 
       setToastMessage(
         error instanceof Error
@@ -193,52 +155,29 @@ function App() {
   // Excluir produto
   // =========================
 
-  async function deleteProduct(
-    id: number
-  ): Promise<void> {
-    const productToDelete =
-      products.find(
-        (product) =>
-          product.id === id
-      );
+  async function deleteProduct(id: number): Promise<void> {
+    const productToDelete = products.find((product) => product.id === id);
 
     try {
-      const response =
-        await apiFetch(
-          `/products/${id}`,
-          {
-            method: 'DELETE',
-          }
-        );
+      const response = await apiFetch(`/products/${id}`, {
+        method: 'DELETE',
+      });
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error ||
-            'Não foi possível excluir o produto.'
-        );
+        throw new Error(data.error || 'Não foi possível excluir o produto.');
       }
 
-      setProducts(
-        (currentProducts) =>
-          currentProducts.filter(
-            (product) =>
-              product.id !== id
-          )
+      setProducts((currentProducts) =>
+        currentProducts.filter((product) => product.id !== id)
       );
 
       if (productToDelete) {
-        setToastMessage(
-          `"${productToDelete.name}" foi excluído com sucesso!`
-        );
+        setToastMessage(`"${productToDelete.name}" foi excluído com sucesso!`);
       }
     } catch (error) {
-      console.error(
-        'ERRO AO EXCLUIR PRODUTO:',
-        error
-      );
+      console.error('ERRO AO EXCLUIR PRODUTO:', error);
 
       setToastMessage(
         error instanceof Error
@@ -254,9 +193,7 @@ function App() {
   // Editar produto
   // =========================
 
-  function editProduct(
-    product: Product
-  ) {
+  function editProduct(product: Product) {
     setEditingProduct(product);
 
     setCurrentPage('products');
@@ -268,64 +205,39 @@ function App() {
   // Atualizar produto
   // =========================
 
-  async function updateProduct(
-    updatedProduct: Product
-  ) {
+  async function updateProduct(updatedProduct: Product) {
     try {
-      const response =
-        await apiFetch(
-          `/products/${updatedProduct.id}`,
-          {
-            method: 'PUT',
-            headers: {
-              'Content-Type':
-                'application/json',
-            },
-            body: JSON.stringify({
-              name:
-                updatedProduct.name,
-              category:
-                updatedProduct.category,
-              quantity:
-                updatedProduct.quantity,
-              price:
-                updatedProduct.price,
-              image:
-                updatedProduct.image,
-            }),
-          }
-        );
+      const response = await apiFetch(`/products/${updatedProduct.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: updatedProduct.name,
+          category: updatedProduct.category,
+          quantity: updatedProduct.quantity,
+          price: updatedProduct.price,
+          image: updatedProduct.image,
+        }),
+      });
 
-      const data =
-        await response.json();
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error ||
-            'Não foi possível atualizar o produto.'
-        );
+        throw new Error(data.error || 'Não foi possível atualizar o produto.');
       }
 
-      setProducts(
-        (currentProducts) =>
-          currentProducts.map(
-            (product) =>
-              product.id === data.id
-                ? data
-                : product
-          )
+      setProducts((currentProducts) =>
+        currentProducts.map((product) =>
+          product.id === data.id ? data : product
+        )
       );
 
       setEditingProduct(null);
 
-      setToastMessage(
-        `"${data.name}" foi atualizado com sucesso!`
-      );
+      setToastMessage(`"${data.name}" foi atualizado com sucesso!`);
     } catch (error) {
-      console.error(
-        'ERRO AO ATUALIZAR PRODUTO:',
-        error
-      );
+      console.error('ERRO AO ATUALIZAR PRODUTO:', error);
 
       setToastMessage(
         error instanceof Error
@@ -336,31 +248,18 @@ function App() {
   }
 
   if (!authenticated) {
-    return (
-      <Login
-        onLogin={handleLogin}
-      />
-    );
+    return <Login onLogin={handleLogin} />;
   }
 
   return (
     <div className="min-h-screen bg-slate-100 lg:flex">
       {toastMessage && (
-        <Toast
-          message={toastMessage}
-          onClose={() =>
-            setToastMessage('')
-          }
-        />
+        <Toast message={toastMessage} onClose={() => setToastMessage('')} />
       )}
 
       <Sidebar
         user={user}
-        activePage={
-          focusProductForm
-            ? 'newProduct'
-            : currentPage
-        }
+        activePage={focusProductForm ? 'newProduct' : currentPage}
         onDashboard={() => {
           setFocusProductForm(false);
           setEditingProduct(null);
@@ -388,91 +287,54 @@ function App() {
           setEditingProduct(null);
           setCurrentPage('users');
         }}
+        onSettings={() => {
+          setFocusProductForm(false);
+          setEditingProduct(null);
+          setCurrentPage('settings');
+        }}
       />
 
       <div className="min-w-0 flex-1">
-        <Header
-          user={user}
-          onLogout={handleLogout}
-        />
+        <Header user={user} onLogout={handleLogout} />
 
         <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
           {loading ? (
             <div className="flex min-h-[300px] items-center justify-center">
-              <p className="text-sm text-slate-500">
-                Carregando produtos...
-              </p>
+              <p className="text-sm text-slate-500">Carregando produtos...</p>
             </div>
           ) : (
             <>
-              {currentPage ===
-                'dashboard' && (
-                <Dashboard
-                  products={
-                    products
-                  }
-                />
-              )}
+              {currentPage === 'dashboard' && <Dashboard products={products} />}
 
-              {currentPage ===
-                'products' && (
+              {currentPage === 'products' && (
                 <Products
-                  products={
-                    products
-                  }
-                  addProduct={
-                    addProduct
-                  }
-                  editingProduct={
-                    editingProduct
-                  }
-                  updateProduct={
-                    updateProduct
-                  }
-                  setEditingProduct={
-                    setEditingProduct
-                  }
-                  deleteProduct={
-                    deleteProduct
-                  }
-                  editProduct={
-                    editProduct
-                  }
-                  shouldFocusForm={
-                    focusProductForm
-                  }
+                  products={products}
+                  addProduct={addProduct}
+                  editingProduct={editingProduct}
+                  updateProduct={updateProduct}
+                  setEditingProduct={setEditingProduct}
+                  deleteProduct={deleteProduct}
+                  editProduct={editProduct}
+                  shouldFocusForm={focusProductForm}
                   user={user}
                 />
               )}
 
-              {currentPage ===
-                'history' && (
-                <StockHistory />
-              )}
+              {currentPage === 'history' && <StockHistory />}
 
-              {currentPage ===
-                'categories' && (
+              {currentPage === 'categories' && (
                 <Categories
-                  products={
-                    products
-                  }
-                  updateProducts={
-                    setProducts
-                  }
+                  products={products}
+                  updateProducts={setProducts}
                   user={user}
                 />
               )}
 
-              {currentPage ===
-                'users' &&
-                user?.role ===
-                  'ADMIN' && (
-                  <Users
-                    onToast={
-                      setToastMessage
-                    }
-                  />
-                )}
+              {currentPage === 'users' && user?.role === 'ADMIN' && (
+                <Users onToast={setToastMessage} />
+              )}
+
+              {currentPage === 'settings' && <Settings user={user} />}
             </>
           )}
         </main>

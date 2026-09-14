@@ -95,6 +95,10 @@ export function getUser(): AuthUser | null {
   }
 }
 
+export function updateStoredUser(user: AuthUser): void {
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
+}
+
 // =========================
 // Logout
 // =========================

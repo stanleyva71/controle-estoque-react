@@ -17,6 +17,11 @@ import type { ReactNode, KeyboardEvent } from 'react';
 import jsPDF from 'jspdf';
 
 import { apiFetch } from '../utils/auth';
+import {
+  getAiAnalysisEnabled,
+  getAiAssistantEnabled,
+} from '../utils/preferences';
+
 import type { Product } from '../types/Product';
 
 interface DashboardProps {
@@ -37,7 +42,6 @@ interface AnalysisStats {
   totalProducts: number;
   totalQuantity: number;
   totalStockValue: number;
-
   lowStockCount: number;
 
   lowStockProducts: Array<{
@@ -153,7 +157,9 @@ const markdownComponents = {
   ),
 
   p: ({ children }: { children?: ReactNode }) => (
-    <p className="mb-3 leading-6 last:mb-0">{children}</p>
+    <p className="mb-3 leading-6 last:mb-0">
+      {children}
+    </p>
   ),
 
   ul: ({ children }: { children?: ReactNode }) => (
@@ -169,7 +175,9 @@ const markdownComponents = {
   ),
 
   li: ({ children }: { children?: ReactNode }) => (
-    <li className="leading-6">{children}</li>
+    <li className="leading-6">
+      {children}
+    </li>
   ),
 
   strong: ({ children }: { children?: ReactNode }) => (
@@ -179,7 +187,9 @@ const markdownComponents = {
   ),
 
   em: ({ children }: { children?: ReactNode }) => (
-    <em className="italic">{children}</em>
+    <em className="italic">
+      {children}
+    </em>
   ),
 
   blockquote: ({ children }: { children?: ReactNode }) => (
@@ -199,12 +209,17 @@ function Dashboard({ products }: DashboardProps) {
   const [analysis, setAnalysis] = useState('');
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
   const [analysisError, setAnalysisError] = useState('');
-
   const [analysisStats, setAnalysisStats] =
     useState<AnalysisStats | null>(null);
 
   const [question, setQuestion] = useState('');
   const [loadingChat, setLoadingChat] = useState(false);
+
+  const [aiAnalysisEnabled, setAiAnalysisEnabled] =
+    useState<boolean>(() => getAiAnalysisEnabled());
+
+  const [aiAssistantEnabled, setAiAssistantEnabled] =
+    useState<boolean>(() => getAiAssistantEnabled());
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
@@ -225,7 +240,6 @@ function Dashboard({ products }: DashboardProps) {
         parsed.messages.length === 0
       ) {
         localStorage.removeItem(CHAT_STORAGE_KEY);
-
         return [INITIAL_MESSAGE];
       }
 
@@ -265,6 +279,34 @@ function Dashboard({ products }: DashboardProps) {
   );
 
   // =========================
+  // Preferências de IA
+  // =========================
+
+  useEffect(() => {
+    function handlePreferencesUpdate() {
+      setAiAnalysisEnabled(
+        getAiAnalysisEnabled()
+      );
+
+      setAiAssistantEnabled(
+        getAiAssistantEnabled()
+      );
+    }
+
+    window.addEventListener(
+      'preferences:updated',
+      handlePreferencesUpdate
+    );
+
+    return () => {
+      window.removeEventListener(
+        'preferences:updated',
+        handlePreferencesUpdate
+      );
+    };
+  }, []);
+
+  // =========================
   // Persistência do chat
   // =========================
 
@@ -297,8 +339,7 @@ function Dashboard({ products }: DashboardProps) {
           return;
         }
 
-        const parsed: StoredChat =
-          JSON.parse(stored);
+        const parsed: StoredChat = JSON.parse(stored);
 
         if (
           Date.now() - parsed.updatedAt >
@@ -337,6 +378,7 @@ function Dashboard({ products }: DashboardProps) {
 
   async function analyzeStock() {
     if (
+      !aiAnalysisEnabled ||
       loadingAnalysis ||
       products.length === 0
     ) {
@@ -366,7 +408,8 @@ function Dashboard({ products }: DashboardProps) {
 
       if (!response.ok) {
         throw new Error(
-          data.error || 'Erro ao analisar estoque.'
+          data.error ||
+            'Erro ao analisar estoque.'
         );
       }
 
@@ -404,6 +447,7 @@ function Dashboard({ products }: DashboardProps) {
       question.trim();
 
     if (
+      !aiAssistantEnabled ||
       !trimmedQuestion ||
       loadingChat ||
       products.length === 0
@@ -422,6 +466,7 @@ function Dashboard({ products }: DashboardProps) {
     ]);
 
     setQuestion('');
+
     setLoadingChat(true);
 
     try {
@@ -443,7 +488,8 @@ function Dashboard({ products }: DashboardProps) {
 
       if (!response.ok) {
         throw new Error(
-          data.error || 'Erro ao enviar pergunta.'
+          data.error ||
+            'Erro ao enviar pergunta.'
         );
       }
 
@@ -513,9 +559,7 @@ function Dashboard({ products }: DashboardProps) {
 
     let y = 20;
 
-    function checkPageBreak(
-      height: number
-    ) {
+    function checkPageBreak(height: number) {
       if (
         y + height >
         pageHeight - 22
@@ -801,7 +845,7 @@ function Dashboard({ products }: DashboardProps) {
     );
 
     // =========================
-    // Pontos de atenção
+    // Pontos de Atenção
     // =========================
 
     addSectionTitle(
@@ -827,7 +871,7 @@ function Dashboard({ products }: DashboardProps) {
     }
 
     // =========================
-    // Informações relevantes
+    // Informações Relevantes
     // =========================
 
     addSectionTitle(
@@ -947,7 +991,7 @@ function Dashboard({ products }: DashboardProps) {
 
         currentSection = {
           title: trimmed.replace(
-            /^###\s*/,
+            /^###\s/,
             ''
           ),
           content: [],
@@ -966,10 +1010,6 @@ function Dashboard({ products }: DashboardProps) {
         currentSection
       );
     }
-
-    // Mostra somente partes úteis
-    // que não sejam duplicações dos
-    // indicadores já calculados.
 
     const aiRelevantSections =
       aiSections.filter(
@@ -1017,9 +1057,7 @@ function Dashboard({ products }: DashboardProps) {
           const contentLine of
             section.content
         ) {
-          if (
-            !contentLine
-          ) {
+          if (!contentLine) {
             y += 3;
             continue;
           }
@@ -1035,7 +1073,7 @@ function Dashboard({ products }: DashboardProps) {
                 ''
               )
               .replace(
-                /^[-•]\s*/,
+                /^[-•]\s/,
                 '• '
               );
 
@@ -1080,7 +1118,7 @@ function Dashboard({ products }: DashboardProps) {
       );
 
       pdf.text(
-        `Sistema de Controle de Estoque`,
+        'Sistema de Controle de Estoque',
         margin,
         pageHeight - 10
       );
@@ -1114,7 +1152,6 @@ function Dashboard({ products }: DashboardProps) {
   ) {
     if (event.key === 'Enter') {
       event.preventDefault();
-
       sendQuestion();
     }
   }
@@ -1222,6 +1259,15 @@ function Dashboard({ products }: DashboardProps) {
       {/* ========================= */}
 
       <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        {!aiAssistantEnabled &&
+          !aiAnalysisEnabled && (
+            <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+              Os recursos de Inteligência
+              Artificial estão desativados
+              nas Configurações.
+            </div>
+          )}
+
         <div className="flex items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
@@ -1236,19 +1282,18 @@ function Dashboard({ products }: DashboardProps) {
             </div>
 
             <p className="mt-1 text-sm text-slate-500">
-              Faça perguntas sobre os produtos cadastrados e
-              receba respostas da IA.
+              Faça perguntas sobre os produtos
+              cadastrados e receba respostas da IA.
             </p>
           </div>
 
           <button
             type="button"
-            onClick={
-              clearConversation
-            }
+            onClick={clearConversation}
             disabled={
-              messages.length <= 1 &&
-              !loadingChat
+              !aiAssistantEnabled ||
+              (messages.length <= 1 &&
+                !loadingChat)
             }
             className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
             title="Limpar conversa"
@@ -1260,119 +1305,134 @@ function Dashboard({ products }: DashboardProps) {
 
         {/* Área do chat */}
 
-        <div className="mt-5 h-[420px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <div className="space-y-4">
-            {messages.map(
-              (
-                message,
-                index
-              ) => (
-                <div
-                  key={`${message.role}-${index}`}
-                  className={`flex ${
-                    message.role ===
-                    'user'
-                      ? 'justify-end'
-                      : 'justify-start'
-                  }`}
-                >
+        <div
+          className={`mt-5 h-[420px] overflow-y-auto rounded-xl border p-4 ${
+            aiAssistantEnabled
+              ? 'border-slate-200 bg-slate-50'
+              : 'border-slate-200 bg-slate-100'
+          }`}
+        >
+          {!aiAssistantEnabled ? (
+            <div className="flex h-full items-center justify-center">
+              <div className="max-w-md text-center">
+                <Bot
+                  size={40}
+                  className="mx-auto mb-3 text-slate-400"
+                />
+
+                <h3 className="text-base font-semibold text-slate-700">
+                  Assistente desativado
+                </h3>
+
+                <p className="mt-1 text-sm text-slate-500">
+                  Ative o Assistente de estoque em
+                  Configurações → Inteligência
+                  Artificial.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {messages.map(
+                (message, index) => (
                   <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                      message.role ===
-                      'user'
-                        ? 'bg-blue-600 text-white'
-                        : 'border border-slate-200 bg-white text-slate-700'
+                    key={`${message.role}-${index}`}
+                    className={`flex ${
+                      message.role === 'user'
+                        ? 'justify-end'
+                        : 'justify-start'
                     }`}
                   >
-                    <div className="mb-2 flex items-center gap-2 text-xs font-semibold">
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                        message.role === 'user'
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-slate-200 bg-white text-slate-700'
+                      }`}
+                    >
+                      <div className="mb-2 flex items-center gap-2 text-xs font-semibold">
+                        {message.role === 'user' ? (
+                          <>
+                            <User size={14} />
+                            Você
+                          </>
+                        ) : (
+                          <>
+                            <Bot size={14} />
+                            Assistente
+                          </>
+                        )}
+                      </div>
+
                       {message.role ===
-                      'user' ? (
-                        <>
-                          <User size={14} />
-                          Você
-                        </>
+                      'assistant' ? (
+                        <div className="text-sm leading-6">
+                          <ReactMarkdown
+                            components={
+                              markdownComponents
+                            }
+                          >
+                            {cleanAIResponse(
+                              message.content
+                            )}
+                          </ReactMarkdown>
+                        </div>
                       ) : (
-                        <>
-                          <Bot size={14} />
-                          Assistente
-                        </>
+                        <p className="whitespace-pre-wrap text-sm leading-6 text-white">
+                          {message.content}
+                        </p>
                       )}
                     </div>
+                  </div>
+                )
+              )}
 
-                    {message.role ===
-                    'assistant' ? (
-                      <div className="text-sm leading-6">
-                        <ReactMarkdown
-                          components={
-                            markdownComponents
-                          }
-                        >
-                          {cleanAIResponse(
-                            message.content
-                          )}
-                        </ReactMarkdown>
-                      </div>
-                    ) : (
-                      <p className="whitespace-pre-wrap text-sm leading-6 text-white">
-                        {
-                          message.content
-                        }
-                      </p>
-                    )}
+              {loadingChat && (
+                <div className="flex justify-start">
+                  <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+                    <Loader2
+                      size={18}
+                      className="animate-spin"
+                    />
+                    Analisando...
                   </div>
                 </div>
-              )
-            )}
-
-            {loadingChat && (
-              <div className="flex justify-start">
-                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-                  <Loader2
-                    size={18}
-                    className="animate-spin"
-                  />
-                  Analisando...
-                </div>
-              </div>
-            )}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Campo de pergunta */}
 
-        {products.length ===
-        0 ? (
+        {products.length === 0 ? (
           <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-            Cadastre pelo menos um produto para conversar
-            com a IA.
+            Cadastre pelo menos um produto para
+            conversar com a IA.
+          </div>
+        ) : !aiAssistantEnabled ? (
+          <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+            O assistente está desativado nas
+            Configurações.
           </div>
         ) : (
           <div className="mt-4 flex gap-3">
             <input
               type="text"
               value={question}
-              onChange={(
-                event
-              ) =>
+              onChange={(event) =>
                 setQuestion(
                   event.target.value
                 )
               }
-              onKeyDown={
-                handleKeyDown
-              }
+              onKeyDown={handleKeyDown}
               placeholder="Ex.: Quais produtos precisam de reposição?"
-              disabled={
-                loadingChat
-              }
+              disabled={loadingChat}
               className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
             />
 
             <button
               type="button"
-              onClick={
-                sendQuestion
-              }
+              onClick={sendQuestion}
               disabled={
                 !question.trim() ||
                 loadingChat
@@ -1399,12 +1459,8 @@ function Dashboard({ products }: DashboardProps) {
           {analysis && (
             <button
               type="button"
-              onClick={
-                exportAnalysisPdf
-              }
-              disabled={
-                !analysisStats
-              }
+              onClick={exportAnalysisPdf}
+              disabled={!analysisStats}
               className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FileDown size={18} />
@@ -1414,17 +1470,20 @@ function Dashboard({ products }: DashboardProps) {
 
           <button
             type="button"
-            onClick={
-              analyzeStock
-            }
+            onClick={analyzeStock}
             disabled={
+              !aiAnalysisEnabled ||
               loadingAnalysis ||
-              products.length ===
-                0
+              products.length === 0
             }
             className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {loadingAnalysis ? (
+            {!aiAnalysisEnabled ? (
+              <>
+                <Bot size={18} />
+                Análise desativada
+              </>
+            ) : loadingAnalysis ? (
               <>
                 <Loader2
                   size={18}
@@ -1445,9 +1504,7 @@ function Dashboard({ products }: DashboardProps) {
 
         {analysisError && (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            <strong>
-              Erro:
-            </strong>{' '}
+            <strong>Erro:</strong>{' '}
             {analysisError}
           </div>
         )}

@@ -7,8 +7,12 @@ import jwt from 'jsonwebtoken';
 import { UserRole } from '@prisma/client';
 
 import { auth, type AuthenticatedRequest } from './middleware/auth';
+
 import { authorize } from './middleware/authorize';
+
 import { prisma } from './lib/prisma';
+
+import { generateGeminiText } from './lib/gemini';
 
 const app = express();
 
@@ -34,11 +38,21 @@ app.use(
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 300,
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     error: 'Muitas requisições. Tente novamente mais tarde.',
+  },
+});
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'Muitas tentativas de autenticação. Tente novamente mais tarde.',
   },
 });
 
@@ -48,7 +62,7 @@ app.use('/api/', apiLimiter);
 // Autenticação
 // =========================
 
-app.post('/api/auth/login', async (req, res) => {
+app.post('/api/auth/login', authLimiter, async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -138,6 +152,92 @@ app.get('/api/test', (_req, res) => {
 // =========================
 
 app.use('/api', auth);
+
+// =========================
+// Alteração de senha
+// =========================
+
+app.post(
+  '/api/auth/change-password',
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+
+      if (
+        typeof currentPassword !== 'string' ||
+        typeof newPassword !== 'string'
+      ) {
+        return res.status(400).json({
+          error: 'Senha atual e nova senha são obrigatórias.',
+        });
+      }
+
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          error: 'A nova senha deve ter pelo menos 6 caracteres.',
+        });
+      }
+
+      const userId = req.user!.userId;
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          error: 'Usuário não encontrado.',
+        });
+      }
+
+      const passwordMatches = await bcrypt.compare(
+        currentPassword,
+        user.passwordHash
+      );
+
+      if (!passwordMatches) {
+        return res.status(401).json({
+          error: 'A senha atual está incorreta.',
+        });
+      }
+
+      const passwordHash = await bcrypt.hash(newPassword, 10);
+
+      await prisma.user.update({
+        where: {
+          id: userId,
+        },
+        data: {
+          passwordHash,
+        },
+      });
+
+      return res.json({
+        message: 'Senha alterada com sucesso.',
+      });
+    } catch (error) {
+      console.error('ERRO AO ALTERAR SENHA:', error);
+
+      return res.status(500).json({
+        error: 'Não foi possível alterar a senha.',
+      });
+    }
+  }
+);
+
+// =========================
+// Usuário autenticado
+// =========================
+
+app.get(
+  '/api/auth/me',
+  authorize('ADMIN', 'OPERADOR', 'VISUALIZACAO'),
+  (req: AuthenticatedRequest, res) => {
+    return res.json({
+      user: req.user,
+    });
+  }
+);
 
 // =========================
 // Usuário autenticado
@@ -1083,7 +1183,9 @@ app.post(
   authorize('ADMIN', 'OPERADOR', 'VISUALIZACAO'),
   async (_req, res) => {
     try {
-      // Busca os produtos diretamente do banco
+      // Busca diretamente do banco
+      // para garantir que a análise use
+      // os dados reais do sistema.
       const products = await prisma.product.findMany({
         orderBy: {
           id: 'asc',
@@ -1105,9 +1207,10 @@ app.post(
       }));
 
       // =========================
-      // Indicadores oficiais
+      // Indicadores
       // =========================
 
+      // Estoque baixo = quantidade <= 5
       const lowStockProducts = productData.filter(
         (product) => product.quantity <= 5
       );
@@ -1124,76 +1227,53 @@ app.post(
       );
 
       const totalStockValue = productData.reduce(
-        (total, product) =>
-          total + product.quantity * product.price,
+        (total, product) => total + product.quantity * product.price,
         0
       );
 
       // Maior quantidade
+
       const highestStockQuantity =
         productData.length > 0
-          ? Math.max(
-              ...productData.map(
-                (product) => product.quantity
-              )
-            )
+          ? Math.max(...productData.map((product) => product.quantity))
           : 0;
 
-      const highestStockProducts =
-        productData.filter(
-          (product) =>
-            product.quantity ===
-            highestStockQuantity
-        );
+      const highestStockProducts = productData.filter(
+        (product) => product.quantity === highestStockQuantity
+      );
 
       // Menor quantidade
+
       const lowestStockQuantity =
         productData.length > 0
-          ? Math.min(
-              ...productData.map(
-                (product) => product.quantity
-              )
-            )
+          ? Math.min(...productData.map((product) => product.quantity))
           : 0;
 
-      const lowestStockProducts =
-        productData.filter(
-          (product) =>
-            product.quantity ===
-            lowestStockQuantity
-        );
+      const lowestStockProducts = productData.filter(
+        (product) => product.quantity === lowestStockQuantity
+      );
 
       // Maior preço
+
       const highestPrice =
         productData.length > 0
-          ? Math.max(
-              ...productData.map(
-                (product) => product.price
-              )
-            )
+          ? Math.max(...productData.map((product) => product.price))
           : 0;
 
-      const highestPriceProducts =
-        productData.filter(
-          (product) =>
-            product.price === highestPrice
-        );
+      const highestPriceProducts = productData.filter(
+        (product) => product.price === highestPrice
+      );
 
       // Menor preço
+
       const lowestPrice =
         productData.length > 0
-          ? Math.min(
-              ...productData.map(
-                (product) => product.price
-              )
-            )
+          ? Math.min(...productData.map((product) => product.price))
           : 0;
 
-      const lowestPriceProducts =
-        productData.filter(
-          (product) =>
-            product.price === lowestPrice
-        );
+      const lowestPriceProducts = productData.filter(
+        (product) => product.price === lowestPrice
+      );
 
       // =========================
       // Resumo por categoria
@@ -1209,11 +1289,11 @@ app.post(
       >();
 
       for (const product of productData) {
-        const existing =
-          categoryMap.get(product.category);
+        const existing = categoryMap.get(product.category);
 
         if (existing) {
           existing.products += 1;
+
           existing.quantity += product.quantity;
         } else {
           categoryMap.set(product.category, {
@@ -1224,12 +1304,10 @@ app.post(
         }
       }
 
-      const categorySummary =
-        Array.from(categoryMap.values());
+      const categorySummary = Array.from(categoryMap.values());
 
       // =========================
-      // Dados objetivos enviados
-      // para a IA
+      // Resumo oficial
       // =========================
 
       const systemSummary = {
@@ -1250,18 +1328,21 @@ app.post(
       };
 
       // =========================
-      // Prompt
+      // Prompt do Gemini
       // =========================
 
       const prompt = `
 Você é um assistente de gestão de estoque.
 
 O sistema já calculou todos os dados abaixo.
+
 Sua tarefa é escrever SOMENTE uma parte textual complementar do relatório.
 
-NÃO altere os dados.
-NÃO repita números diferentes dos fornecidos.
-NÃO faça novos cálculos.
+Os dados apresentados são oficiais.
+
+Não altere os dados.
+Não repita números incorretos.
+Não faça novos cálculos.
 
 =========================
 DADOS OFICIAIS DO SISTEMA
@@ -1301,7 +1382,7 @@ Apresente de 2 a 4 sugestões gerais e úteis para acompanhamento e gestão do e
 As sugestões podem envolver:
 - acompanhamento do histórico de movimentações;
 - revisão periódica dos produtos;
-- acompanhamento de produtos com estoque baixo;
+- acompanhamento dos produtos com estoque baixo;
 - acompanhamento das categorias;
 - atualização dos cadastros;
 - acompanhamento do valor do estoque.
@@ -1315,85 +1396,61 @@ Faça uma conclusão curta e objetiva sobre os dados apresentados.
 Não invente informações.
 
 Responda em português do Brasil.
+
 Use linguagem natural e profissional.
 `;
 
-      // =========================
-      // Ollama
-      // =========================
+      let analysis: string;
 
-      const response = await fetch(
-        'http://localhost:11434/api/generate',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'qwen2.5:3b',
-            prompt,
-            stream: false,
-            options: {
-              temperature: 0,
-            },
-          }),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText =
-          await response.text();
-
-        console.error(
-          'ERRO DO OLLAMA:',
-          errorText
-        );
+      try {
+        analysis = await generateGeminiText(prompt);
+      } catch (error) {
+        console.error('ERRO DO GEMINI NA ANÁLISE:', error);
 
         return res.status(502).json({
           error:
-            'Erro ao se comunicar com o Ollama.',
+            error instanceof Error
+              ? `Erro ao se comunicar com o Gemini: ${error.message}`
+              : 'Erro ao se comunicar com o Gemini.',
         });
       }
 
-      const data =
-        await response.json();
-
       return res.json({
-        analysis:
-          typeof data.response === 'string'
-            ? data.response
-            : '',
+        analysis,
 
         stats: {
           totalProducts,
           totalQuantity,
           totalStockValue,
-          lowStockCount:
-            lowStockProducts.length,
+
+          lowStockCount: lowStockProducts.length,
+
           lowStockProducts,
-          zeroStockCount:
-            zeroStockProducts.length,
+
+          zeroStockCount: zeroStockProducts.length,
+
           zeroStockProducts,
+
           highestStockQuantity,
           highestStockProducts,
+
           lowestStockQuantity,
           lowestStockProducts,
+
           highestPrice,
           highestPriceProducts,
+
           lowestPrice,
           lowestPriceProducts,
+
           categorySummary,
         },
       });
     } catch (error) {
-      console.error(
-        'ERRO INTERNO DA API:',
-        error
-      );
+      console.error('ERRO INTERNO DA API:', error);
 
       return res.status(500).json({
-        error:
-          'Não foi possível analisar o estoque.',
+        error: 'Não foi possível analisar o estoque.',
       });
     }
   }
@@ -1434,6 +1491,10 @@ app.post(
           error: 'A pergunta deve ter no máximo 1000 caracteres.',
         });
       }
+
+      // =========================
+      // Validação
+      // =========================
 
       for (const product of products) {
         if (!product || typeof product !== 'object') {
@@ -1535,7 +1596,7 @@ app.post(
         .replace(/[\u0300-\u036f]/g, '');
 
       // =========================
-      // Respostas determinísticas
+      // Identificação da pergunta
       // =========================
 
       const asksLowStock =
@@ -1571,7 +1632,10 @@ app.post(
         normalizedQuestion.includes('menor preco') ||
         normalizedQuestion.includes('produto mais barato');
 
-      // Estoque baixo
+      // =========================
+      // Respostas determinísticas
+      // =========================
+
       if (asksLowStock) {
         if (lowStockProducts.length === 0) {
           return res.json({
@@ -1589,7 +1653,6 @@ app.post(
         });
       }
 
-      // Maior estoque
       if (asksHighestStock) {
         const lines = highestStockProducts.map(
           (product) => `- ${product.name}: ${product.quantity} unidade(s)`
@@ -1602,7 +1665,6 @@ app.post(
         });
       }
 
-      // Menor estoque
       if (asksLowestStock) {
         const lines = lowestStockProducts.map(
           (product) => `- ${product.name}: ${product.quantity} unidade(s)`
@@ -1615,7 +1677,6 @@ app.post(
         });
       }
 
-      // Valor total
       if (asksTotalValue) {
         return res.json({
           answer: `O valor total estimado do estoque é de R$ ${totalStockValue.toFixed(
@@ -1624,7 +1685,6 @@ app.post(
         });
       }
 
-      // Maior preço
       if (asksHighestPrice) {
         const lines = highestPriceProducts.map(
           (product) =>
@@ -1637,7 +1697,6 @@ app.post(
         });
       }
 
-      // Menor preço
       if (asksLowestPrice) {
         const lines = lowestPriceProducts.map(
           (product) =>
@@ -1651,7 +1710,7 @@ app.post(
       }
 
       // =========================
-      // Chat aberto com Ollama
+      // Chat aberto com Gemini
       // =========================
 
       const prompt = `
@@ -1706,7 +1765,7 @@ Produto(s) com menor preço:
 ${JSON.stringify(lowestPriceProducts, null, 2)}
 
 =========================
-PERGUNTA
+PERGUNTA DO USUÁRIO
 =========================
 
 ${question.trim()}
@@ -1723,7 +1782,8 @@ REGRAS
 - Não altere os valores calculados.
 - Estoque baixo significa quantidade menor ou igual a 5.
 - Quantidade 0 também é estoque baixo.
-- Não invente demanda ou previsão de vendas.
+- Não invente demanda.
+- Não invente previsão de vendas.
 - Não considere uma quantidade maior que 5 como estoque baixo.
 - Não transforme uma quantidade alta em excesso automaticamente.
 - Não mostre JSON.
@@ -1731,36 +1791,22 @@ REGRAS
 - Seja claro, natural e objetivo.
 `;
 
-      const response = await fetch('http://localhost:11434/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'qwen2.5:3b',
-          prompt,
-          stream: false,
-          options: {
-            temperature: 0,
-          },
-        }),
-      });
+      try {
+        const answer = await generateGeminiText(prompt);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-
-        console.error('ERRO DO OLLAMA NO CHAT:', errorText);
+        return res.json({
+          answer,
+        });
+      } catch (error) {
+        console.error('ERRO DO GEMINI NO CHAT:', error);
 
         return res.status(502).json({
-          error: 'Erro ao se comunicar com o Ollama.',
+          error:
+            error instanceof Error
+              ? `Erro ao se comunicar com o Gemini: ${error.message}`
+              : 'Erro ao se comunicar com o Gemini.',
         });
       }
-
-      const data = await response.json();
-
-      return res.json({
-        answer: data.response,
-      });
     } catch (error) {
       console.error('ERRO INTERNO DO CHAT:', error);
 
