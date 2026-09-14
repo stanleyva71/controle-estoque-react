@@ -309,7 +309,30 @@ function App() {
             </div>
           ) : (
             <>
-              {currentPage === 'dashboard' && <Dashboard products={products} />}
+              {currentPage === 'dashboard' && (
+                <Dashboard
+                  products={products}
+                  onEditProduct={editProduct}
+                  onNewProduct={() => {
+                    setEditingProduct(null);
+                    setFocusProductForm(true);
+                    setCurrentPage('products');
+                  }}
+                  onProducts={() => {
+                    setFocusProductForm(false);
+                    setEditingProduct(null);
+                    setCurrentPage('products');
+                  }}
+                  onHistory={() => {
+                    setFocusProductForm(false);
+                    setCurrentPage('history');
+                  }}
+                  onCategories={() => {
+                    setFocusProductForm(false);
+                    setCurrentPage('categories');
+                  }}
+                />
+              )}
 
               {currentPage === 'products' && (
                 <Products
