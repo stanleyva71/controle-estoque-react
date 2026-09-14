@@ -246,6 +246,9 @@ function App() {
       );
     }
   }
+  function handleUserUpdated(updatedUser: AuthUser) {
+    setUser(updatedUser);
+  }
 
   if (!authenticated) {
     return <Login onLogin={handleLogin} />;
@@ -359,7 +362,10 @@ function App() {
               )}
 
               {currentPage === 'users' && user?.role === 'ADMIN' && (
-                <Users onToast={setToastMessage} />
+                <Users
+                  onToast={setToastMessage}
+                  onUserUpdated={handleUserUpdated}
+                />
               )}
 
               {currentPage === 'settings' && <Settings user={user} />}

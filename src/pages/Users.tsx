@@ -36,11 +36,17 @@ type UserFormData = {
 
 interface UsersProps {
   onToast: (message: string) => void;
+  onUserUpdated: (user: {
+    id: number;
+    name: string;
+    email: string;
+    role: 'ADMIN' | 'OPERADOR' | 'VISUALIZACAO';
+  }) => void;
 }
 
 const USERS_PER_PAGE = 5;
 
-function Users({ onToast }: UsersProps) {
+function Users({ onToast, onUserUpdated }: UsersProps) {
   const [users, setUsers] = useState<User[]>([]);
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -198,6 +204,13 @@ function Users({ onToast }: UsersProps) {
         setUsers((currentUsers) =>
           currentUsers.map((user) => (user.id === editingUser.id ? data : user))
         );
+
+        onUserUpdated({
+          id: data.id,
+          name: data.name,
+          email: data.email,
+          role: data.role,
+        });
 
         onToast('Usuário atualizado com sucesso.');
       } else {
