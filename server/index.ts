@@ -16,7 +16,7 @@ import { generateGeminiText } from './lib/gemini';
 
 const app = express();
 
-const PORT = 3001;
+const PORT = Number(process.env.PORT) || 3001;
 
 // =========================
 // Configurações de segurança
@@ -24,7 +24,10 @@ const PORT = 3001;
 
 app.use(
   cors({
-    origin: 'http://localhost:5173',
+    origin: [
+      'http://localhost:5173',
+      'https://controle-estoque-react-roan.vercel.app',
+    ],
   })
 );
 
@@ -222,20 +225,6 @@ app.post(
         error: 'Não foi possível alterar a senha.',
       });
     }
-  }
-);
-
-// =========================
-// Usuário autenticado
-// =========================
-
-app.get(
-  '/api/auth/me',
-  authorize('ADMIN', 'OPERADOR', 'VISUALIZACAO'),
-  (req: AuthenticatedRequest, res) => {
-    return res.json({
-      user: req.user,
-    });
   }
 );
 
@@ -1821,6 +1810,6 @@ REGRAS
 // Inicialização do servidor
 // =========================
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor rodando na porta ${PORT}`);
 });
