@@ -16,7 +16,22 @@ import { useEffect, useState } from 'react';
 import type { ReactNode, KeyboardEvent } from 'react';
 import jsPDF from 'jspdf';
 
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from 'recharts';
+
 import { apiFetch } from '../utils/auth';
+
 import {
   getAiAnalysisEnabled,
   getAiAssistantEnabled,
@@ -43,7 +58,6 @@ interface AnalysisStats {
   totalQuantity: number;
   totalStockValue: number;
   lowStockCount: number;
-
   lowStockProducts: Array<{
     id: number;
     name: string;
@@ -51,11 +65,8 @@ interface AnalysisStats {
     quantity: number;
     price: number;
   }>;
-
   zeroStockCount: number;
-
   highestStockQuantity: number;
-
   highestStockProducts: Array<{
     id: number;
     name: string;
@@ -63,9 +74,7 @@ interface AnalysisStats {
     quantity: number;
     price: number;
   }>;
-
   lowestStockQuantity: number;
-
   lowestStockProducts: Array<{
     id: number;
     name: string;
@@ -73,9 +82,7 @@ interface AnalysisStats {
     quantity: number;
     price: number;
   }>;
-
   highestPrice: number;
-
   highestPriceProducts: Array<{
     id: number;
     name: string;
@@ -83,9 +90,7 @@ interface AnalysisStats {
     quantity: number;
     price: number;
   }>;
-
   lowestPrice: number;
-
   lowestPriceProducts: Array<{
     id: number;
     name: string;
@@ -93,7 +98,6 @@ interface AnalysisStats {
     quantity: number;
     price: number;
   }>;
-
   categorySummary: Array<{
     category: string;
     products: number;
@@ -110,6 +114,17 @@ const INITIAL_MESSAGE: ChatMessage = {
   content:
     'Olá! 👋 Sou o assistente de estoque. Você pode me perguntar sobre seus produtos, estoque baixo, reposições, categorias ou qualquer outra informação relacionada ao seu estoque.',
 };
+
+const CHART_COLORS = [
+  '#2563eb',
+  '#10b981',
+  '#f59e0b',
+  '#ef4444',
+  '#8b5cf6',
+  '#ec4899',
+  '#06b6d4',
+  '#f97316',
+];
 
 /**
  * Limpa alguns resíduos que podem eventualmente vir
@@ -157,39 +172,27 @@ const markdownComponents = {
   ),
 
   p: ({ children }: { children?: ReactNode }) => (
-    <p className="mb-3 leading-6 last:mb-0">
-      {children}
-    </p>
+    <p className="mb-3 leading-6 last:mb-0">{children}</p>
   ),
 
   ul: ({ children }: { children?: ReactNode }) => (
-    <ul className="mb-3 list-disc space-y-1 pl-5">
-      {children}
-    </ul>
+    <ul className="mb-3 list-disc space-y-1 pl-5">{children}</ul>
   ),
 
   ol: ({ children }: { children?: ReactNode }) => (
-    <ol className="mb-3 list-decimal space-y-1 pl-5">
-      {children}
-    </ol>
+    <ol className="mb-3 list-decimal space-y-1 pl-5">{children}</ol>
   ),
 
   li: ({ children }: { children?: ReactNode }) => (
-    <li className="leading-6">
-      {children}
-    </li>
+    <li className="leading-6">{children}</li>
   ),
 
   strong: ({ children }: { children?: ReactNode }) => (
-    <strong className="font-semibold text-slate-900">
-      {children}
-    </strong>
+    <strong className="font-semibold text-slate-900">{children}</strong>
   ),
 
   em: ({ children }: { children?: ReactNode }) => (
-    <em className="italic">
-      {children}
-    </em>
+    <em className="italic">{children}</em>
   ),
 
   blockquote: ({ children }: { children?: ReactNode }) => (
@@ -207,19 +210,25 @@ const markdownComponents = {
 
 function Dashboard({ products }: DashboardProps) {
   const [analysis, setAnalysis] = useState('');
+
   const [loadingAnalysis, setLoadingAnalysis] = useState(false);
+
   const [analysisError, setAnalysisError] = useState('');
+
   const [analysisStats, setAnalysisStats] =
     useState<AnalysisStats | null>(null);
 
   const [question, setQuestion] = useState('');
+
   const [loadingChat, setLoadingChat] = useState(false);
 
-  const [aiAnalysisEnabled, setAiAnalysisEnabled] =
-    useState<boolean>(() => getAiAnalysisEnabled());
+  const [aiAnalysisEnabled, setAiAnalysisEnabled] = useState<boolean>(() =>
+    getAiAnalysisEnabled()
+  );
 
-  const [aiAssistantEnabled, setAiAssistantEnabled] =
-    useState<boolean>(() => getAiAssistantEnabled());
+  const [aiAssistantEnabled, setAiAssistantEnabled] = useState<boolean>(() =>
+    getAiAssistantEnabled()
+  );
 
   const [messages, setMessages] = useState<ChatMessage[]>(() => {
     try {
@@ -245,10 +254,7 @@ function Dashboard({ products }: DashboardProps) {
 
       return parsed.messages;
     } catch (error) {
-      console.error(
-        'Erro ao carregar conversa salva:',
-        error
-      );
+      console.error('Erro ao carregar conversa salva:', error);
 
       localStorage.removeItem(CHAT_STORAGE_KEY);
 
@@ -273,10 +279,35 @@ function Dashboard({ products }: DashboardProps) {
   ).size;
 
   const totalStockValue = products.reduce(
-    (total, product) =>
-      total + product.quantity * product.price,
+    (total, product) => total + product.quantity * product.price,
     0
   );
+
+  // =========================
+  // Dados dos gráficos
+  // =========================
+
+  const stockByCategory = products.reduce(
+    (acc, product) => {
+      const category = product.category || 'Sem categoria';
+
+      acc[category] = (acc[category] || 0) + product.quantity;
+
+      return acc;
+    },
+    {} as Record<string, number>
+  );
+
+  const categoryChartData = Object.entries(stockByCategory)
+    .map(([name, value]) => ({
+      name,
+      value,
+    }))
+    .sort((a, b) => b.value - a.value);
+
+  const lowStockChartData = [...lowStockProducts]
+    .sort((a, b) => a.quantity - b.quantity)
+    .slice(0, 8);
 
   // =========================
   // Preferências de IA
@@ -284,13 +315,8 @@ function Dashboard({ products }: DashboardProps) {
 
   useEffect(() => {
     function handlePreferencesUpdate() {
-      setAiAnalysisEnabled(
-        getAiAnalysisEnabled()
-      );
-
-      setAiAssistantEnabled(
-        getAiAssistantEnabled()
-      );
+      setAiAnalysisEnabled(getAiAnalysisEnabled());
+      setAiAssistantEnabled(getAiAssistantEnabled());
     }
 
     window.addEventListener(
@@ -322,18 +348,14 @@ function Dashboard({ products }: DashboardProps) {
         JSON.stringify(storedChat)
       );
     } catch (error) {
-      console.error(
-        'Erro ao salvar conversa:',
-        error
-      );
+      console.error('Erro ao salvar conversa:', error);
     }
   }, [messages]);
 
   useEffect(() => {
     const expirationCheck = window.setInterval(() => {
       try {
-        const stored =
-          localStorage.getItem(CHAT_STORAGE_KEY);
+        const stored = localStorage.getItem(CHAT_STORAGE_KEY);
 
         if (!stored) {
           return;
@@ -345,9 +367,7 @@ function Dashboard({ products }: DashboardProps) {
           Date.now() - parsed.updatedAt >
           CHAT_EXPIRATION_TIME
         ) {
-          localStorage.removeItem(
-            CHAT_STORAGE_KEY
-          );
+          localStorage.removeItem(CHAT_STORAGE_KEY);
 
           setMessages([INITIAL_MESSAGE]);
         }
@@ -387,29 +407,30 @@ function Dashboard({ products }: DashboardProps) {
 
     try {
       setLoadingAnalysis(true);
+
       setAnalysis('');
+
       setAnalysisError('');
+
       setAnalysisStats(null);
 
-      const response = await apiFetch(
-        '/analisar-estoque',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            products,
-          }),
-        }
-      );
+      const response = await apiFetch('/analisar-estoque', {
+        method: 'POST',
+
+        headers: {
+          'Content-Type': 'application/json',
+        },
+
+        body: JSON.stringify({
+          products,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.error ||
-            'Erro ao analisar estoque.'
+          data.error || 'Erro ao analisar estoque.'
         );
       }
 
@@ -423,10 +444,7 @@ function Dashboard({ products }: DashboardProps) {
         setAnalysisStats(data.stats);
       }
     } catch (error) {
-      console.error(
-        'Erro ao analisar estoque:',
-        error
-      );
+      console.error('Erro ao analisar estoque:', error);
 
       setAnalysisError(
         error instanceof Error
@@ -443,8 +461,7 @@ function Dashboard({ products }: DashboardProps) {
   // =========================
 
   async function sendQuestion() {
-    const trimmedQuestion =
-      question.trim();
+    const trimmedQuestion = question.trim();
 
     if (
       !aiAssistantEnabled ||
@@ -460,69 +477,57 @@ function Dashboard({ products }: DashboardProps) {
       content: trimmedQuestion,
     };
 
-    setMessages((prev) => [
-      ...prev,
-      userMessage,
-    ]);
+    setMessages((prev) => [...prev, userMessage]);
 
     setQuestion('');
 
     setLoadingChat(true);
 
     try {
-      const response = await apiFetch(
-        '/chat-estoque',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            products,
-            question: trimmedQuestion,
-          }),
-        }
-      );
+      const response = await apiFetch('/chat-estoque', {
+        method: 'POST',
+
+        headers: {
+          'Content-Type': 'application/json',
+        },
+
+        body: JSON.stringify({
+          products,
+          question: trimmedQuestion,
+        }),
+      });
 
       const data = await response.json();
 
       if (!response.ok) {
         throw new Error(
-          data.error ||
-            'Erro ao enviar pergunta.'
+          data.error || 'Erro ao enviar pergunta.'
         );
       }
 
       const assistantMessage: ChatMessage = {
         role: 'assistant',
+
         content:
           typeof data.answer === 'string'
             ? cleanAIResponse(data.answer)
             : 'A IA não retornou uma resposta válida.',
       };
 
-      setMessages((prev) => [
-        ...prev,
-        assistantMessage,
-      ]);
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error(
-        'Erro no chat:',
-        error
-      );
+      console.error('Erro no chat:', error);
 
       const errorMessage: ChatMessage = {
         role: 'assistant',
+
         content:
           error instanceof Error
             ? `Não foi possível responder: ${error.message}`
             : 'Não foi possível responder à pergunta.',
       };
 
-      setMessages((prev) => [
-        ...prev,
-        errorMessage,
-      ]);
+      setMessages((prev) => [...prev, errorMessage]);
     } finally {
       setLoadingChat(false);
     }
@@ -533,10 +538,7 @@ function Dashboard({ products }: DashboardProps) {
   // =========================
 
   function exportAnalysisPdf() {
-    if (
-      !analysis.trim() ||
-      !analysisStats
-    ) {
+    if (!analysis.trim() || !analysisStats) {
       return;
     }
 
@@ -546,25 +548,20 @@ function Dashboard({ products }: DashboardProps) {
       format: 'a4',
     });
 
-    const pageWidth =
-      pdf.internal.pageSize.getWidth();
+    const pageWidth = pdf.internal.pageSize.getWidth();
 
-    const pageHeight =
-      pdf.internal.pageSize.getHeight();
+    const pageHeight = pdf.internal.pageSize.getHeight();
 
     const margin = 18;
 
-    const contentWidth =
-      pageWidth - margin * 2;
+    const contentWidth = pageWidth - margin * 2;
 
     let y = 20;
 
     function checkPageBreak(height: number) {
-      if (
-        y + height >
-        pageHeight - 22
-      ) {
+      if (y + height > pageHeight - 22) {
         pdf.addPage();
+
         y = 20;
       }
     }
@@ -582,56 +579,30 @@ function Dashboard({ products }: DashboardProps) {
 
       pdf.setFontSize(fontSize);
 
-      pdf.setTextColor(
-        51,
-        65,
-        85
+      pdf.setTextColor(51, 65, 85);
+
+      const lines = pdf.splitTextToSize(
+        text,
+        contentWidth
       );
 
-      const lines =
-        pdf.splitTextToSize(
-          text,
-          contentWidth
-        );
+      checkPageBreak(lines.length * lineHeight);
 
-      checkPageBreak(
-        lines.length * lineHeight
-      );
+      pdf.text(lines, margin, y);
 
-      pdf.text(
-        lines,
-        margin,
-        y
-      );
-
-      y +=
-        lines.length *
-        lineHeight;
+      y += lines.length * lineHeight;
     }
 
-    function addSectionTitle(
-      title: string
-    ) {
+    function addSectionTitle(title: string) {
       checkPageBreak(12);
 
-      pdf.setFont(
-        'helvetica',
-        'bold'
-      );
+      pdf.setFont('helvetica', 'bold');
 
       pdf.setFontSize(13);
 
-      pdf.setTextColor(
-        30,
-        41,
-        59
-      );
+      pdf.setTextColor(30, 41, 59);
 
-      pdf.text(
-        title,
-        margin,
-        y
-      );
+      pdf.text(title, margin, y);
 
       y += 7;
     }
@@ -640,55 +611,31 @@ function Dashboard({ products }: DashboardProps) {
     // Cabeçalho
     // =========================
 
-    pdf.setFont(
-      'helvetica',
-      'bold'
-    );
+    pdf.setFont('helvetica', 'bold');
 
     pdf.setFontSize(20);
 
-    pdf.setTextColor(
-      30,
-      64,
-      175
-    );
+    pdf.setTextColor(30, 64, 175);
 
-    pdf.text(
-      'Relatório de Estoque',
-      margin,
-      y
-    );
+    pdf.text('Relatório de Estoque', margin, y);
 
     y += 7;
 
-    pdf.setFont(
-      'helvetica',
-      'normal'
-    );
+    pdf.setFont('helvetica', 'normal');
 
     pdf.setFontSize(9);
 
-    pdf.setTextColor(
-      100,
-      116,
-      139
-    );
+    pdf.setTextColor(100, 116, 139);
 
     pdf.text(
-      `Gerado em ${new Date().toLocaleString(
-        'pt-BR'
-      )}`,
+      `Gerado em ${new Date().toLocaleString('pt-BR')}`,
       margin,
       y
     );
 
     y += 8;
 
-    pdf.setDrawColor(
-      203,
-      213,
-      225
-    );
+    pdf.setDrawColor(203, 213, 225);
 
     pdf.line(
       margin,
@@ -706,8 +653,7 @@ function Dashboard({ products }: DashboardProps) {
     const cardGap = 4;
 
     const cardWidth =
-      (contentWidth - cardGap * 3) /
-      4;
+      (contentWidth - cardGap * 3) / 4;
 
     const cardHeight = 24;
 
@@ -738,83 +684,55 @@ function Dashboard({ products }: DashboardProps) {
       },
     ];
 
-    checkPageBreak(
-      cardHeight + 8
-    );
+    checkPageBreak(cardHeight + 8);
 
-    cards.forEach(
-      (card, index) => {
-        const x =
-          margin +
-          index *
-            (cardWidth + cardGap);
+    cards.forEach((card, index) => {
+      const x =
+        margin +
+        index * (cardWidth + cardGap);
 
-        pdf.setDrawColor(
-          226,
-          232,
-          240
-        );
+      pdf.setDrawColor(226, 232, 240);
 
-        pdf.setFillColor(
-          248,
-          250,
-          252
-        );
+      pdf.setFillColor(248, 250, 252);
 
-        pdf.roundedRect(
-          x,
-          y,
-          cardWidth,
-          cardHeight,
-          2,
-          2,
-          'FD'
-        );
+      pdf.roundedRect(
+        x,
+        y,
+        cardWidth,
+        cardHeight,
+        2,
+        2,
+        'FD'
+      );
 
-        pdf.setFont(
-          'helvetica',
-          'normal'
-        );
+      pdf.setFont('helvetica', 'normal');
 
-        pdf.setFontSize(7);
+      pdf.setFontSize(7);
 
-        pdf.setTextColor(
-          100,
-          116,
-          139
-        );
+      pdf.setTextColor(100, 116, 139);
 
-        pdf.text(
-          card.title,
-          x + 4,
-          y + 7
-        );
+      pdf.text(
+        card.title,
+        x + 4,
+        y + 7
+      );
 
-        pdf.setFont(
-          'helvetica',
-          'bold'
-        );
+      pdf.setFont('helvetica', 'bold');
 
-        pdf.setFontSize(
-          card.title ===
-            'Valor total'
-            ? 9
-            : 13
-        );
+      pdf.setFontSize(
+        card.title === 'Valor total'
+          ? 9
+          : 13
+      );
 
-        pdf.setTextColor(
-          30,
-          41,
-          59
-        );
+      pdf.setTextColor(30, 41, 59);
 
-        pdf.text(
-          card.value,
-          x + 4,
-          y + 17
-        );
-      }
-    );
+      pdf.text(
+        card.value,
+        x + 4,
+        y + 17
+      );
+    });
 
     y += cardHeight + 10;
 
@@ -822,9 +740,7 @@ function Dashboard({ products }: DashboardProps) {
     // Visão Geral
     // =========================
 
-    addSectionTitle(
-      'Visão Geral'
-    );
+    addSectionTitle('Visão Geral');
 
     addWrappedText(
       `O estoque possui ${analysisStats.totalProducts} produtos cadastrados, totalizando ${analysisStats.totalQuantity} unidades, com valor total de ${formatCurrency(
@@ -848,18 +764,12 @@ function Dashboard({ products }: DashboardProps) {
     // Pontos de Atenção
     // =========================
 
-    addSectionTitle(
-      'Pontos de Atenção'
-    );
+    addSectionTitle('Pontos de Atenção');
 
     if (
-      analysisStats.lowStockProducts
-        ?.length > 0
+      analysisStats.lowStockProducts?.length > 0
     ) {
-      for (
-        const product of
-          analysisStats.lowStockProducts
-      ) {
+      for (const product of analysisStats.lowStockProducts) {
         addWrappedText(
           `• ${product.name}: ${product.quantity} unidade(s) — estoque baixo.`
         );
@@ -923,17 +833,11 @@ function Dashboard({ products }: DashboardProps) {
     // =========================
 
     if (
-      analysisStats.categorySummary
-        ?.length > 0
+      analysisStats.categorySummary?.length > 0
     ) {
-      addSectionTitle(
-        'Categorias'
-      );
+      addSectionTitle('Categorias');
 
-      for (
-        const category of
-          analysisStats.categorySummary
-      ) {
+      for (const category of analysisStats.categorySummary) {
         addWrappedText(
           `• ${category.category}: ${category.products} produto(s), ${category.quantity} unidade(s).`
         );
@@ -945,48 +849,30 @@ function Dashboard({ products }: DashboardProps) {
     // =========================
 
     const cleanedAnalysis =
-      cleanAIResponse(
-        analysis
-      );
+      cleanAIResponse(analysis);
 
-    const analysisLines =
-      cleanedAnalysis
-        .split('\n')
-        .filter(
-          (line) =>
-            line.trim().length > 0
-        );
+    const analysisLines = cleanedAnalysis
+      .split('\n')
+      .filter(
+        (line) => line.trim().length > 0
+      );
 
     const aiSections: {
       title: string;
       content: string[];
     }[] = [];
 
-    let currentSection:
-      | {
-          title: string;
-          content: string[];
-        }
-      | null = null;
+    let currentSection: {
+      title: string;
+      content: string[];
+    } | null = null;
 
-    for (
-      const line of
-        analysisLines
-    ) {
-      const trimmed =
-        line.trim();
+    for (const line of analysisLines) {
+      const trimmed = line.trim();
 
-      if (
-        trimmed.startsWith(
-          '### '
-        )
-      ) {
-        if (
-          currentSection
-        ) {
-          aiSections.push(
-            currentSection
-          );
+      if (trimmed.startsWith('### ')) {
+        if (currentSection) {
+          aiSections.push(currentSection);
         }
 
         currentSection = {
@@ -996,52 +882,31 @@ function Dashboard({ products }: DashboardProps) {
           ),
           content: [],
         };
-      } else if (
-        currentSection
-      ) {
-        currentSection.content.push(
-          trimmed
-        );
+      } else if (currentSection) {
+        currentSection.content.push(trimmed);
       }
     }
 
     if (currentSection) {
-      aiSections.push(
-        currentSection
-      );
+      aiSections.push(currentSection);
     }
 
     const aiRelevantSections =
       aiSections.filter(
         (section) =>
-          section.title !==
-            'Visão Geral' &&
-          section.title !==
-            'Pontos de Atenção' &&
+          section.title !== 'Visão Geral' &&
+          section.title !== 'Pontos de Atenção' &&
           section.title !==
             'Informações Relevantes'
       );
 
-    if (
-      aiRelevantSections.length >
-      0
-    ) {
-      for (
-        const section of
-          aiRelevantSections
-      ) {
-        pdf.setFont(
-          'helvetica',
-          'bold'
-        );
+    if (aiRelevantSections.length > 0) {
+      for (const section of aiRelevantSections) {
+        pdf.setFont('helvetica', 'bold');
 
         pdf.setFontSize(11);
 
-        pdf.setTextColor(
-          51,
-          65,
-          85
-        );
+        pdf.setTextColor(51, 65, 85);
 
         checkPageBreak(9);
 
@@ -1053,29 +918,16 @@ function Dashboard({ products }: DashboardProps) {
 
         y += 6;
 
-        for (
-          const contentLine of
-            section.content
-        ) {
+        for (const contentLine of section.content) {
           if (!contentLine) {
             y += 3;
             continue;
           }
 
-          const cleanLine =
-            contentLine
-              .replace(
-                /\*\*/g,
-                ''
-              )
-              .replace(
-                /\*/g,
-                ''
-              )
-              .replace(
-                /^[-•]\s/,
-                '• '
-              );
+          const cleanLine = contentLine
+            .replace(/\*\*/g, '')
+            .replace(/\*/g, '')
+            .replace(/^[-•]\s/, '• ');
 
           addWrappedText(
             cleanLine,
@@ -1137,10 +989,9 @@ function Dashboard({ products }: DashboardProps) {
     // Salvar
     // =========================
 
-    const date =
-      new Date()
-        .toISOString()
-        .slice(0, 10);
+    const date = new Date()
+      .toISOString()
+      .slice(0, 10);
 
     pdf.save(
       `relatorio-estoque-${date}.pdf`
@@ -1152,6 +1003,7 @@ function Dashboard({ products }: DashboardProps) {
   ) {
     if (event.key === 'Enter') {
       event.preventDefault();
+
       sendQuestion();
     }
   }
@@ -1242,15 +1094,166 @@ function Dashboard({ products }: DashboardProps) {
             </p>
 
             <p className="mt-1 text-2xl font-bold text-slate-800">
-              {formatCurrency(
-                totalStockValue
-              )}
+              {formatCurrency(totalStockValue)}
             </p>
 
             <p className="mt-1 text-sm text-slate-400">
               Valor total dos produtos
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* ========================= */}
+      {/* Gráficos */}
+      {/* ========================= */}
+
+      <div className="mt-6 grid grid-cols-1 gap-5 xl:grid-cols-2">
+        {/* Estoque por categoria */}
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">
+              Estoque por categoria
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Distribuição das unidades em estoque
+            </p>
+          </div>
+
+          {categoryChartData.length === 0 ? (
+            <div className="flex h-[320px] items-center justify-center">
+              <p className="text-sm text-slate-400">
+                Nenhum produto cadastrado.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-4 h-[320px]">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <PieChart>
+                  <Pie
+                    data={categoryChartData}
+                    dataKey="value"
+                    nameKey="name"
+                    cx="50%"
+                    cy="45%"
+                    innerRadius={60}
+                    outerRadius={105}
+                    paddingAngle={3}
+                  >
+                    {categoryChartData.map(
+                      (entry, index) => (
+                        <Cell
+                          key={`category-${entry.name}`}
+                          fill={
+                            CHART_COLORS[
+                              index %
+                                CHART_COLORS.length
+                            ]
+                          }
+                        />
+                      )
+                    )}
+                  </Pie>
+
+                  <Tooltip
+                    formatter={(value) => [
+                      `${value} unidades`,
+                      'Estoque',
+                    ]}
+                  />
+
+                  <Legend
+                    verticalAlign="bottom"
+                    height={36}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
+
+        {/* Estoque baixo */}
+
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div>
+            <h2 className="text-xl font-bold text-slate-800">
+              Produtos com estoque baixo
+            </h2>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Produtos com até 5 unidades em estoque
+            </p>
+          </div>
+
+          {lowStockChartData.length === 0 ? (
+            <div className="flex h-[320px] items-center justify-center">
+              <p className="text-sm text-green-600">
+                Nenhum produto com estoque baixo.
+              </p>
+            </div>
+          ) : (
+            <div className="mt-4 h-[320px]">
+              <ResponsiveContainer
+                width="100%"
+                height="100%"
+              >
+                <BarChart
+                  data={lowStockChartData}
+                  layout="vertical"
+                  margin={{
+                    top: 10,
+                    right: 20,
+                    left: 10,
+                    bottom: 10,
+                  }}
+                >
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                  />
+
+                  <XAxis
+                    type="number"
+                    allowDecimals={false}
+                    domain={[
+                      0,
+                      5,
+                    ]}
+                  />
+
+                  <YAxis
+                    type="category"
+                    dataKey="name"
+                    width={110}
+                    tick={{ fontSize: 12 }}
+                  />
+
+                  <Tooltip
+                    formatter={(value) => [
+                      `${value} unidades`,
+                      'Estoque',
+                    ]}
+                  />
+
+                  <Bar
+                    dataKey="quantity"
+                    fill="#f59e0b"
+                    radius={[
+                      0,
+                      6,
+                      6,
+                      0,
+                    ]}
+                    barSize={24}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1262,9 +1265,8 @@ function Dashboard({ products }: DashboardProps) {
         {!aiAssistantEnabled &&
           !aiAnalysisEnabled && (
             <div className="mb-5 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-              Os recursos de Inteligência
-              Artificial estão desativados
-              nas Configurações.
+              Os recursos de Inteligência Artificial
+              estão desativados nas Configurações.
             </div>
           )}
 
@@ -1299,6 +1301,7 @@ function Dashboard({ products }: DashboardProps) {
             title="Limpar conversa"
           >
             <Trash2 size={17} />
+
             Limpar conversa
           </button>
         </div>
@@ -1326,8 +1329,7 @@ function Dashboard({ products }: DashboardProps) {
 
                 <p className="mt-1 text-sm text-slate-500">
                   Ative o Assistente de estoque em
-                  Configurações → Inteligência
-                  Artificial.
+                  Configurações → Inteligência Artificial.
                 </p>
               </div>
             </div>
@@ -1364,8 +1366,7 @@ function Dashboard({ products }: DashboardProps) {
                         )}
                       </div>
 
-                      {message.role ===
-                      'assistant' ? (
+                      {message.role === 'assistant' ? (
                         <div className="text-sm leading-6">
                           <ReactMarkdown
                             components={
@@ -1394,6 +1395,7 @@ function Dashboard({ products }: DashboardProps) {
                       size={18}
                       className="animate-spin"
                     />
+
                     Analisando...
                   </div>
                 </div>
@@ -1420,9 +1422,7 @@ function Dashboard({ products }: DashboardProps) {
               type="text"
               value={question}
               onChange={(event) =>
-                setQuestion(
-                  event.target.value
-                )
+                setQuestion(event.target.value)
               }
               onKeyDown={handleKeyDown}
               placeholder="Ex.: Quais produtos precisam de reposição?"
@@ -1464,6 +1464,7 @@ function Dashboard({ products }: DashboardProps) {
               className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FileDown size={18} />
+
               Exportar PDF
             </button>
           )}
@@ -1481,6 +1482,7 @@ function Dashboard({ products }: DashboardProps) {
             {!aiAnalysisEnabled ? (
               <>
                 <Bot size={18} />
+
                 Análise desativada
               </>
             ) : loadingAnalysis ? (
@@ -1489,11 +1491,13 @@ function Dashboard({ products }: DashboardProps) {
                   size={18}
                   className="animate-spin"
                 />
+
                 Gerando análise...
               </>
             ) : (
               <>
                 <Bot size={18} />
+
                 Gerar análise automática
               </>
             )}
@@ -1504,8 +1508,7 @@ function Dashboard({ products }: DashboardProps) {
 
         {analysisError && (
           <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            <strong>Erro:</strong>{' '}
-            {analysisError}
+            <strong>Erro:</strong> {analysisError}
           </div>
         )}
 
@@ -1519,13 +1522,9 @@ function Dashboard({ products }: DashboardProps) {
 
             <div className="text-sm leading-7 text-slate-700">
               <ReactMarkdown
-                components={
-                  markdownComponents
-                }
+                components={markdownComponents}
               >
-                {cleanAIResponse(
-                  analysis
-                )}
+                {cleanAIResponse(analysis)}
               </ReactMarkdown>
             </div>
           </div>

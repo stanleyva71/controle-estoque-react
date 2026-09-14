@@ -295,7 +295,12 @@ function App() {
       />
 
       <div className="min-w-0 flex-1">
-        <Header user={user} onLogout={handleLogout} />
+        <Header
+          user={user}
+          onLogout={handleLogout}
+          onNotificationProduct={editProduct}
+          products={products}
+        />
 
         <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
           {loading ? (

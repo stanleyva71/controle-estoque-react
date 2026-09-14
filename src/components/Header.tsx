@@ -1,49 +1,23 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Bell, LogOut, AlertTriangle, PackageX } from 'lucide-react';
 
 import type { AuthUser } from '../utils/auth';
-import { apiFetch } from '../utils/auth';
 import type { Product } from '../types/Product';
 
 interface HeaderProps {
   user: AuthUser | null;
   onLogout: () => void;
+  onNotificationProduct: (product: Product) => void;
+  products: Product[];
 }
 
-function Header({ user, onLogout }: HeaderProps) {
+function Header({
+  user,
+  onLogout,
+  onNotificationProduct,
+  products,
+}: HeaderProps) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
-  const [products, setProducts] = useState<Product[]>([]);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadProducts() {
-      try {
-        const response = await apiFetch('/products');
-
-        if (!response.ok) {
-          return;
-        }
-
-        const data = await response.json();
-
-        if (!cancelled) {
-          setProducts(data);
-        }
-      } catch (error) {
-        console.error('ERRO AO CARREGAR NOTIFICAÇÕES:', error);
-      }
-    }
-
-    loadProducts();
-
-    const interval = window.setInterval(loadProducts, 30000);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(interval);
-    };
-  }, []);
 
   const notifications = products
     .filter((product) => product.quantity <= 5)
@@ -66,13 +40,9 @@ function Header({ user, onLogout }: HeaderProps) {
       <div className="flex items-center gap-3">
         {user && (
           <div className="hidden text-right sm:block">
-            <p className="text-sm font-semibold text-slate-800">
-              {user.name}
-            </p>
+            <p className="text-sm font-semibold text-slate-800">{user.name}</p>
 
-            <p className="text-xs text-slate-500">
-              {user.email}
-            </p>
+            <p className="text-xs text-slate-500">{user.email}</p>
           </div>
         )}
 
@@ -102,9 +72,7 @@ function Header({ user, onLogout }: HeaderProps) {
                       Notificações
                     </h3>
 
-                    <p className="text-xs text-slate-500">
-                      Alertas do estoque
-                    </p>
+                    <p className="text-xs text-slate-500">Alertas do estoque</p>
                   </div>
 
                   {notificationCount > 0 && (
@@ -118,10 +86,7 @@ function Header({ user, onLogout }: HeaderProps) {
               <div className="max-h-80 overflow-y-auto">
                 {notifications.length === 0 ? (
                   <div className="flex flex-col items-center justify-center px-6 py-8 text-center">
-                    <Bell
-                      size={28}
-                      className="mb-2 text-green-500"
-                    />
+                    <Bell size={28} className="mb-2 text-green-500" />
 
                     <p className="text-sm font-semibold text-slate-800">
                       Tudo certo!
@@ -136,9 +101,14 @@ function Header({ user, onLogout }: HeaderProps) {
                     const outOfStock = product.quantity <= 0;
 
                     return (
-                      <div
+                      <button
                         key={product.id}
-                        className="flex items-start gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0"
+                        type="button"
+                        onClick={() => {
+                          onNotificationProduct(product);
+                          setNotificationsOpen(false);
+                        }}
+                        className="flex w-full items-start gap-3 border-b border-slate-100 px-4 py-3 text-left transition hover:bg-slate-50 last:border-b-0"
                       >
                         <div
                           className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${
@@ -161,9 +131,7 @@ function Header({ user, onLogout }: HeaderProps) {
 
                           <p
                             className={`mt-0.5 text-xs ${
-                              outOfStock
-                                ? 'text-red-600'
-                                : 'text-amber-600'
+                              outOfStock ? 'text-red-600' : 'text-amber-600'
                             }`}
                           >
                             {outOfStock
@@ -173,7 +141,7 @@ function Header({ user, onLogout }: HeaderProps) {
                                 }`}
                           </p>
                         </div>
-                      </div>
+                      </button>
                     );
                   })
                 )}
@@ -191,9 +159,7 @@ function Header({ user, onLogout }: HeaderProps) {
         >
           <LogOut size={20} />
 
-          <span className="hidden sm:inline">
-            Sair
-          </span>
+          <span className="hidden sm:inline">Sair</span>
         </button>
       </div>
     </header>
