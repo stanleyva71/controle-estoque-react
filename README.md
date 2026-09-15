@@ -1,275 +1,329 @@
 # 📦 Sistema de Controle de Estoque
 
-<img width="1920" height="1080" alt="sistema" src="https://github.com/user-attachments/assets/aa547735-69ad-42fe-a3f1-f23aaac7de02" />
+Aplicação web **full stack** para gerenciamento de estoque, desenvolvida com React, TypeScript, Node.js, Express, Prisma e PostgreSQL.
 
-Aplicação web full stack desenvolvida para gerenciamento de produtos em estoque, com cadastro, edição, exclusão, pesquisa, filtros, categorias, histórico de movimentações, persistência em banco de dados PostgreSQL e integração com Inteligência Artificial local através do Ollama.
+O sistema foi construído para praticar e demonstrar, em um único projeto, conceitos de **desenvolvimento Front-end, Back-end, API REST, banco de dados, autenticação, autorização, segurança, integração com Inteligência Artificial e deploy em nuvem**.
 
-O projeto foi desenvolvido com foco em prática de desenvolvimento **Front-end, Back-end, banco de dados, API REST, integração entre sistemas e Inteligência Artificial local**.
-
-Além do gerenciamento tradicional de estoque, a aplicação possui um assistente inteligente capaz de analisar os produtos cadastrados e responder perguntas utilizando linguagem natural.
-
----
-
-## 🚀 Tecnologias utilizadas
-
-### Front-end
-
-* React
-* TypeScript
-* Tailwind CSS
-* Vite
-* React Markdown
-
-### Back-end
-
-* Node.js
-* Express
-* TypeScript
-* API REST
-* CORS
-* Helmet
-* Express Rate Limit
-
-### Banco de dados
-
-* PostgreSQL
-* Prisma ORM
-* Prisma Client
-* `@prisma/adapter-pg`
-* `pg`
-
-### Inteligência Artificial
-
-* Ollama
-* Qwen 2.5 3B
-* Execução local de modelo de linguagem
-
-### Bibliotecas
-
-* Lucide React
-* React Markdown
-* jsPDF
-* jsPDF AutoTable
-
-### Ferramentas
-
-* Git
-* GitHub
-* NPM
-* VS Code
+🔗 **Aplicação online:**
+https://controle-estoque-react-roan.vercel.app/
 
 ---
 
-# ✨ Funcionalidades
+## 📸 Preview
 
-## 📦 Gerenciamento de produtos
+<img width="1871" height="956" alt="Screenshot_1" src="https://github.com/user-attachments/assets/ee5ea1d2-a1b4-40f0-8cc3-ceaa40b949c9" />
+
+---
+
+# 🚀 Sobre o projeto
+
+O sistema permite cadastrar, consultar, editar e excluir produtos, organizar categorias, acompanhar movimentações de estoque e visualizar indicadores através de um dashboard.
+
+Além disso, possui um sistema de **autenticação com JWT e controle de acesso por perfil**, permitindo diferentes níveis de permissão para usuários.
+
+Também existe uma integração com **Google Gemini**, utilizada para análise e consulta dos dados do estoque através de linguagem natural.
+
+O projeto possui arquitetura separada entre:
+
+```text
+Frontend
+    ↓
+API REST
+    ↓
+Prisma ORM
+    ↓
+PostgreSQL
+```
+
+e:
+
+```text
+Frontend
+    ↓
+API
+    ↓
+Google Gemini
+```
+
+---
+
+# ✨ Principais funcionalidades
+
+## 🔐 Autenticação e autorização
+
+O sistema possui autenticação baseada em **JWT (JSON Web Token)**.
+
+Funcionalidades:
+
+* Login com e-mail e senha
+* Senhas protegidas com `bcrypt`
+* Token JWT com expiração
+* Logout
+* Controle de sessão
+* Alteração de senha
+* Controle de acesso baseado em funções
+* Proteção das rotas da API
+* Tratamento de sessão expirada ou token inválido
+
+### Perfis disponíveis
+
+| Perfil         | Permissões                                    |
+| -------------- | --------------------------------------------- |
+| `ADMIN`        | Acesso completo ao sistema                    |
+| `OPERADOR`     | Operações de produtos e categorias permitidas |
+| `VISUALIZACAO` | Consulta e visualização dos dados             |
+
+O sistema utiliza middleware de autenticação e autorização para controlar o acesso às operações protegidas.
+
+---
+
+# 📦 Gerenciamento de produtos
 
 O sistema possui um CRUD completo de produtos integrado ao PostgreSQL.
 
-Funcionalidades:
+### Recursos
 
 * Cadastro de produtos
 * Edição de produtos
 * Exclusão de produtos
 * Confirmação antes da exclusão
-* Adição de imagem
+* Cadastro de imagem
 * Pesquisa por nome
+* Pesquisa por categoria
 * Filtro por categoria
 * Filtro de estoque baixo
 * Ordenação por nome
 * Ordenação por quantidade
 * Ordenação por preço
-* Validação dos dados enviados para a API
+* Validação dos dados recebidos pela API
+* Controle de permissões para operações de alteração
 
-A persistência dos produtos é realizada através da API REST, utilizando Prisma ORM e PostgreSQL.
+### Estrutura básica
+
+```text
+Product
+├── id
+├── name
+├── category
+├── quantity
+├── price
+├── image
+├── createdAt
+└── updatedAt
+```
 
 ---
 
-## 🗂️ Gerenciamento de categorias
+# 🗂️ Gerenciamento de categorias
 
-O sistema possui um módulo dedicado ao gerenciamento de categorias.
+O sistema possui um módulo próprio para gerenciamento de categorias.
 
-Funcionalidades:
+### Recursos
 
 * Cadastro de categorias
 * Edição de categorias
 * Exclusão de categorias
-* Busca de categorias
-* Contagem de produtos por categoria
+* Listagem de categorias
+* Busca
+* Contagem de produtos associados
 * Identificação de categorias sem produtos
-* Validação de categorias duplicadas
-* Validação para impedir exclusão de categorias que possuem produtos associados
-* Sincronização da categoria dos produtos após alteração do nome da categoria
-
-As categorias são armazenadas no PostgreSQL através do Prisma.
+* Prevenção de categorias duplicadas
+* Prevenção de exclusão de categorias utilizadas por produtos
+* Atualização automática da categoria dos produtos quando o nome é alterado
 
 ---
 
-## 🔎 Pesquisa, filtros e organização
+# 🔎 Pesquisa, filtros e ordenação
 
-A aplicação permite organizar os produtos através de diferentes recursos:
+A aplicação permite organizar os produtos através de diferentes mecanismos:
 
 * Pesquisa por nome
 * Pesquisa por categoria
 * Filtro por categoria
-* Filtro de produtos com estoque baixo
+* Filtro de estoque baixo
 * Ordenação por nome
 * Ordenação por quantidade
 * Ordenação por preço
 
-A regra utilizada para identificar estoque baixo é:
+### Regra de estoque baixo
+
+O sistema considera estoque baixo quando:
 
 ```text
-Quantidade menor ou igual a 5
+Quantidade <= 5
 ```
 
-Essa regra é calculada pelo sistema, garantindo consistência nos dados apresentados.
+A regra é aplicada diretamente pela aplicação para manter consistência nos indicadores e análises.
 
 ---
 
 # 📊 Dashboard
 
-O Dashboard apresenta informações resumidas do estoque.
+O Dashboard apresenta uma visão geral do estoque.
 
-Indicadores disponíveis:
+### Indicadores
 
-* Total de produtos cadastrados
-* Quantidade de produtos com estoque baixo
+* Total de produtos
+* Produtos com estoque baixo
 * Número de categorias
-* Valor total dos produtos em estoque
+* Valor total do estoque
 
-O valor total do estoque é calculado considerando:
+### Valor total do estoque
+
+O valor é calculado através de:
 
 ```text
-Quantidade × preço do produto
+Quantidade × Preço
 ```
 
 Exemplo:
 
 ```text
-10 unidades × R$ 50,00 = R$ 500,00
+10 × R$ 50,00 = R$ 500,00
 ```
+
+O Dashboard também apresenta informações relacionadas ao histórico de movimentações e produtos que precisam de atenção.
 
 ---
 
 # 📜 Histórico de movimentações
 
-O sistema possui um módulo de **Histórico de Movimentações**, responsável por registrar as principais alterações realizadas no estoque.
-
-As movimentações são persistidas no PostgreSQL e registradas automaticamente pela API.
+Todas as principais alterações realizadas no estoque podem ser registradas automaticamente pela API.
 
 ### Tipos de movimentação
 
-* Entrada de estoque
-* Saída de estoque
-* Criação de produto
-* Atualização de produto
-* Remoção de produto
+```text
+criacao
+entrada
+saida
+atualizacao
+remocao
+```
 
-### Informações registradas
+### Dados registrados
 
-Cada movimentação possui:
+Cada movimentação pode armazenar:
 
-* Produto movimentado
+* ID da movimentação
 * ID do produto
-* Tipo da movimentação
+* Nome do produto
+* Tipo da operação
 * Quantidade movimentada
 * Quantidade anterior
 * Nova quantidade
-* Descrição da operação
+* Descrição
 * Data e horário
+* Usuário responsável pela operação
 
-Exemplo:
+### Exemplo
 
 ```text
 Produto: Teclado
-Tipo: Saída
+Tipo: saida
 Quantidade: 30
 Anterior: 60
 Novo estoque: 30
 ```
 
-O histórico permite acompanhar a evolução do estoque e fornece maior rastreabilidade das operações.
+Além do controle operacional, o histórico melhora a **rastreabilidade das alterações realizadas no sistema**.
+
+---
+
+# 👥 Usuários
+
+Usuários com perfil `ADMIN` possuem acesso ao gerenciamento de usuários.
+
+### Recursos
+
+* Listar usuários
+* Criar usuários
+* Editar usuários
+* Alterar perfil
+* Alterar senha
+* Desativar usuários
+* Impedir exclusão do próprio usuário
+
+Os dados dos usuários são armazenados no PostgreSQL.
+
+As senhas não são armazenadas em texto puro: o sistema utiliza `bcrypt` para gerar os hashes das senhas.
 
 ---
 
 # 🤖 Inteligência Artificial
 
-O sistema possui integração com **Inteligência Artificial local utilizando Ollama**.
+O sistema possui integração com **Google Gemini** para interpretar e responder perguntas relacionadas ao estoque.
 
-A IA é executada localmente através do modelo:
+A IA é utilizada como uma camada de interpretação sobre os dados estruturados do sistema.
 
-```text
-qwen2.5:3b
-```
-
-Isso permite utilizar recursos de linguagem natural sem depender diretamente de APIs externas de IA pagas.
-
----
-
-## 🧠 Arquitetura da IA
-
-A comunicação funciona através da seguinte arquitetura:
+## Arquitetura
 
 ```text
+Usuário
+   ↓
 React
    ↓
 Express API
    ↓
-Ollama
-   ↓
-Qwen 2.5 3B
+Google Gemini
    ↓
 Resposta
    ↓
 React
 ```
 
-O Front-end não acessa diretamente o Ollama.
+O Front-end não acessa diretamente a API do Gemini.
 
-A API Express funciona como intermediária entre a aplicação React e o modelo de Inteligência Artificial.
+A comunicação é realizada pelo Back-end.
 
 ---
 
 # 📊 Análise automática de estoque
 
-A aplicação possui uma funcionalidade de análise automática do estoque.
+O sistema possui uma funcionalidade de análise automática.
 
-Ao solicitar uma análise, o Front-end envia os produtos para a API:
+Endpoint utilizado:
 
 ```http
 POST /api/analisar-estoque
 ```
 
-A API realiza os cálculos objetivos do estoque e envia os dados para o Ollama.
+A API consulta os produtos diretamente no banco e calcula os indicadores objetivos antes de enviar o contexto ao Gemini.
 
-A análise pode apresentar:
+### Indicadores considerados
 
 * Produtos com estoque baixo
-* Produtos que precisam de reposição
-* Produto com maior quantidade em estoque
-* Prioridades
-* Recomendações para o gestor
+* Produtos com estoque zerado
+* Maior quantidade em estoque
+* Menor quantidade em estoque
+* Maior preço
+* Menor preço
+* Quantidade total
+* Valor total do estoque
+* Resumo por categoria
 
-### Regra de estoque baixo
-
-A regra é definida pelo código da aplicação:
+A regra utilizada para estoque baixo é:
 
 ```text
 Quantidade <= 5
 ```
 
-A Inteligência Artificial recebe os valores calculados pelo sistema como contexto.
+A IA recebe os dados calculados pelo sistema e é responsável principalmente por **interpretar e apresentar as informações em linguagem natural**.
 
-Isso reduz o risco de o modelo interpretar incorretamente regras numéricas.
+Isso reduz a necessidade de utilizar um modelo de linguagem para realizar cálculos básicos que podem ser executados diretamente pela aplicação.
 
 ---
 
 # 💬 Chat com Inteligência Artificial
 
-Além da análise automática, o sistema possui um chat integrado ao estoque.
+Além da análise automática, o sistema possui um chat relacionado aos dados do estoque.
 
-O usuário pode realizar perguntas em linguagem natural, por exemplo:
+Endpoint:
+
+```http
+POST /api/chat-estoque
+```
+
+### Exemplos de perguntas
 
 ```text
 Quais produtos estão com estoque baixo?
@@ -285,70 +339,30 @@ Qual é o produto com maior preço?
 Qual é o produto com menor preço?
 
 Qual é o valor total do estoque?
-
-Quantos produtos estão cadastrados?
 ```
 
-A comunicação funciona através do endpoint:
+O sistema também identifica algumas perguntas diretamente pelo Back-end e retorna respostas determinísticas sem depender do modelo de linguagem.
 
-```http
-POST /api/chat-estoque
-```
-
-Fluxo:
-
-```text
-Usuário
-   ↓
-Chat React
-   ↓
-API Express
-   ↓
-Cálculos do sistema
-   ↓
-Ollama
-   ↓
-Qwen 2.5 3B
-   ↓
-Resposta
-   ↓
-Chat React
-```
+Isso aumenta a consistência das respostas para informações numéricas.
 
 ---
 
-## 🔐 Confiabilidade dos dados da IA
+# 💾 Persistência de dados
 
-Uma preocupação importante do projeto é evitar que o modelo de linguagem seja responsável por cálculos que podem ser realizados diretamente pelo sistema.
+Os dados principais da aplicação são armazenados em:
 
-Por isso, informações objetivas são calculadas pelo JavaScript antes de serem enviadas ao modelo.
+**PostgreSQL**
 
-Exemplos:
+O acesso ao banco é realizado através do:
 
-* Estoque baixo
-* Maior quantidade
-* Menor quantidade
-* Maior preço
-* Menor preço
-* Valor total do estoque
+**Prisma ORM**
 
-A IA é utilizada principalmente para **interpretar, contextualizar e apresentar as informações em linguagem natural**.
+### Dados persistidos
 
-Essa abordagem reduz a possibilidade de respostas inconsistentes em informações numéricas.
-
----
-
-# 💾 Persistência dos dados
-
-Os principais dados da aplicação são armazenados no **PostgreSQL**.
-
-### Dados persistidos no banco
-
+* Usuários
 * Produtos
 * Categorias
 * Movimentações de estoque
-
-O Prisma ORM é utilizado para acessar e manipular os dados.
 
 Arquitetura:
 
@@ -362,33 +376,21 @@ Prisma
 PostgreSQL
 ```
 
-### Persistência da conversa
-
-As mensagens do chat da IA utilizam `localStorage` apenas para manter a conversa temporariamente no navegador.
-
-A conversa:
-
-* permanece ao trocar de aba;
-* permanece ao atualizar a página;
-* é atualizada a cada nova interação;
-* expira após 24 horas sem atividade;
-* pode ser apagada manualmente através do botão "Limpar conversa".
-
-O `localStorage` **não é utilizado para armazenar os produtos, categorias ou histórico do estoque**.
+O `localStorage` é utilizado apenas para informações locais do navegador, como a sessão do usuário e a persistência temporária da conversa da IA.
 
 ---
 
 # 🔌 API REST
 
-A aplicação possui um back-end desenvolvido com Node.js, Express e TypeScript.
+O Back-end foi desenvolvido utilizando Node.js, Express e TypeScript.
 
-## Health check
+## Health Check
 
 ```http
 GET /api/test
 ```
 
-Exemplo:
+Resposta:
 
 ```json
 {
@@ -398,155 +400,102 @@ Exemplo:
 
 ---
 
-## Produtos
+# 🛡️ Segurança
 
-### Listar produtos
+O projeto possui algumas medidas de proteção no Back-end.
 
-```http
-GET /api/products
+## JWT
+
+As rotas protegidas utilizam:
+
+```text
+Authorization: Bearer <token>
 ```
 
-### Buscar produto
+Os tokens possuem tempo de expiração configurado no servidor.
 
-```http
-GET /api/products/:id
-```
+## Bcrypt
 
-### Criar produto
+As senhas dos usuários são armazenadas através de hashes gerados com `bcrypt`.
 
-```http
-POST /api/products
-```
+## Helmet
 
-### Atualizar produto
+O middleware `Helmet` é utilizado para adicionar headers de segurança HTTP.
 
-```http
-PUT /api/products/:id
-```
+## CORS
 
-### Excluir produto
+O Back-end utiliza CORS para controlar quais origens podem acessar a API.
 
-```http
-DELETE /api/products/:id
-```
-
----
-
-## Categorias
-
-### Listar categorias
-
-```http
-GET /api/categories
-```
-
-### Criar categoria
-
-```http
-POST /api/categories
-```
-
-### Atualizar categoria
-
-```http
-PUT /api/categories/:id
-```
-
-### Excluir categoria
-
-```http
-DELETE /api/categories/:id
-```
-
----
-
-## Histórico
-
-### Listar movimentações
-
-```http
-GET /api/movements
-```
-
----
-
-## Inteligência Artificial
-
-### Análise automática
-
-```http
-POST /api/analisar-estoque
-```
-
-### Chat
-
-```http
-POST /api/chat-estoque
-```
-
----
-
-# 🛡️ Segurança da API
-
-O back-end possui algumas medidas básicas de segurança e proteção:
-
-### CORS
-
-O acesso da API é restringido ao Front-end local durante o desenvolvimento:
+Durante o desenvolvimento:
 
 ```text
 http://localhost:5173
 ```
 
-### Helmet
-
-O middleware Helmet é utilizado para adicionar headers de segurança HTTP.
-
-### Rate Limit
-
-As rotas da API possuem limitação de requisições através do `express-rate-limit`.
-
-Configuração atual:
+Em produção:
 
 ```text
-Janela: 15 minutos
-Limite: 100 requisições
+https://controle-estoque-react-roan.vercel.app
 ```
 
-### Validação de dados
+## Rate Limit
 
-Os endpoints validam os dados recebidos antes de realizar operações no banco.
+A API utiliza `express-rate-limit` para limitar requisições.
 
-São validados, entre outros:
+Também existe uma limitação específica para tentativas de autenticação.
+
+## Validação
+
+A API realiza validações antes de executar operações no banco.
+
+Entre os dados validados estão:
 
 * Nome
+* E-mail
+* Senha
+* Perfil de usuário
 * Categoria
 * Quantidade
 * Preço
-* ID do produto
-* ID da categoria
-* Pergunta enviada para a IA
-* Quantidade máxima de produtos enviados para análise
+* IDs
+* Perguntas enviadas para a IA
 
 ---
 
 # 🗄️ Banco de dados
 
-O projeto utiliza PostgreSQL com Prisma ORM.
-
-### Models principais
+O projeto utiliza:
 
 ```text
+PostgreSQL
+Prisma ORM
+Prisma Client
+@prisma/adapter-pg
+pg
+```
+
+### Principais Models
+
+```text
+User
 Product
 Category
 StockMovement
 ```
 
+### User
+
+```text
+id
+name
+email
+passwordHash
+role
+createdAt
+updatedAt
+```
+
 ### Product
-
-Armazena os produtos cadastrados.
-
-Principais campos:
 
 ```text
 id
@@ -561,10 +510,6 @@ updatedAt
 
 ### Category
 
-Armazena as categorias dos produtos.
-
-Campos:
-
 ```text
 id
 name
@@ -572,10 +517,6 @@ createdAt
 ```
 
 ### StockMovement
-
-Armazena o histórico das alterações realizadas no estoque.
-
-Campos principais:
 
 ```text
 id
@@ -587,56 +528,155 @@ previousQuantity
 newQuantity
 description
 date
+userId
 ```
 
 ---
 
-# 🖥️ Interface
+# ☁️ Deploy
 
-A aplicação possui uma interface administrativa responsiva desenvolvida com React e Tailwind CSS.
+A aplicação utiliza uma arquitetura distribuída em serviços separados.
 
-Principais elementos:
+```text
+┌────────────────────────────┐
+│          Vercel            │
+│       React + Vite         │
+└─────────────┬──────────────┘
+              │
+              │ HTTPS
+              ▼
+┌────────────────────────────┐
+│          Render            │
+│      Express + Node.js     │
+└─────────────┬──────────────┘
+              │
+              │ PostgreSQL
+              ▼
+┌────────────────────────────┐
+│         Supabase           │
+│        PostgreSQL          │
+└────────────────────────────┘
+```
 
-* Dashboard
-* Sidebar de navegação
-* Gerenciamento de produtos
-* Gerenciamento de categorias
-* Histórico de movimentações
-* Assistente inteligente
-* Formulários
-* Modais de confirmação
-* Toasts de sucesso e erro
-* Filtros
-* Ordenação
-* Indicadores de estoque
-* Markdown nas respostas da IA
+### Front-end
+
+Hospedado na:
+
+**Vercel**
+
+```text
+https://controle-estoque-react-roan.vercel.app/
+```
+
+### Back-end
+
+Hospedado na:
+
+**Render**
+
+```text
+https://controle-estoque-react-7wka.onrender.com
+```
+
+### Banco de dados
+
+Hospedado no:
+
+**Supabase**
+
+O Front-end utiliza uma variável de ambiente para descobrir a URL da API:
+
+```env
+VITE_API_URL=http://localhost:3001/api
+```
+
+Em produção:
+
+```env
+VITE_API_URL=https://controle-estoque-react-7wka.onrender.com/api
+```
 
 ---
 
-# 📱 Responsividade
+# ⚙️ Variáveis de ambiente
 
-A interface foi desenvolvida considerando diferentes tamanhos de tela.
+O projeto utiliza diferentes variáveis dependendo do ambiente.
 
-O layout utiliza:
+## Front-end
 
-* Grid responsivo
-* Flexbox
+```env
+VITE_API_URL=http://localhost:3001/api
+```
+
+## Back-end
+
+```env
+DATABASE_URL="..."
+JWT_SECRET="..."
+GEMINI_API_KEY="..."
+```
+
+---
+
+# 🧰 Tecnologias utilizadas
+
+## Front-end
+
+* React
+* TypeScript
+* Vite
 * Tailwind CSS
-* Breakpoints responsivos
+* React Markdown
 
-Permitindo utilizar o sistema em:
+## Back-end
 
-* Desktop
-* Notebook
-* Tablet
-* Dispositivos móveis
+* Node.js
+* Express
+* TypeScript
+* API REST
+* CORS
+* Helmet
+* Express Rate Limit
+* JWT
+* Bcrypt
+
+## Banco de dados
+
+* PostgreSQL
+* Prisma ORM
+* Prisma Client
+* `@prisma/adapter-pg`
+* `pg`
+
+## Inteligência Artificial
+
+* Google Gemini
+* Google GenAI SDK
+
+## Bibliotecas
+
+* Lucide React
+* Recharts
+* React Markdown
+* jsPDF
+* jsPDF AutoTable
+
+## Ferramentas
+
+* Git
+* GitHub
+* NPM
+* VS Code
+* Vercel
+* Render
+* Supabase
 
 ---
 
 # 📂 Estrutura do projeto
 
 ```text
-controle-estoque/
+controle-estoque-react/
 │
 ├── src/
 │   ├── components/
@@ -650,8 +690,14 @@ controle-estoque/
 │   │   └── DeleteModal.tsx
 │   │
 │   ├── pages/
+│   │   ├── Login.tsx
 │   │   ├── Products.tsx
-│   │   └── StockHistory.tsx
+│   │   ├── StockHistory.tsx
+│   │   ├── Users.tsx
+│   │   └── Settings.tsx
+│   │
+│   ├── utils/
+│   │   └── auth.ts
 │   │
 │   ├── types/
 │   │   ├── Product.ts
@@ -666,65 +712,28 @@ controle-estoque/
 │   └── migrations/
 │
 ├── server/
-│   └── index.ts
+│   ├── index.ts
+│   ├── routes/
+│   ├── middleware/
+│   │   ├── auth.ts
+│   │   └── authorize.ts
+│   └── lib/
+│       ├── prisma.ts
+│       └── gemini.ts
 │
+├── .env.example
+├── .gitignore
 ├── package.json
 ├── prisma.config.ts
-└── README.md
-```
-
-> A estrutura pode ser alterada conforme novas funcionalidades forem adicionadas ao projeto.
-
----
-
-# 🧩 Arquitetura da aplicação
-
-A aplicação segue uma arquitetura separando Front-end, Back-end, banco de dados e Inteligência Artificial.
-
-```text
-                    ┌─────────────────┐
-                    │     React       │
-                    │  TypeScript     │
-                    └────────┬────────┘
-                             │
-                             ▼
-                    ┌─────────────────┐
-                    │     Express     │
-                    │     API REST    │
-                    └───────┬─┬───────┘
-                            │ │
-                 ┌──────────┘ └───────────┐
-                 ▼                        ▼
-        ┌─────────────────┐      ┌─────────────────┐
-        │     Prisma      │      │     Ollama      │
-        │      ORM        │      │   Qwen 2.5 3B  │
-        └────────┬────────┘      └─────────────────┘
-                 │
-                 ▼
-        ┌─────────────────┐
-        │   PostgreSQL    │
-        └─────────────────┘
+├── tsconfig.json
+└── vite.config.ts
 ```
 
 ---
 
-# 🛠️ Configuração do ambiente
+# ▶️ Executando localmente
 
-## Requisitos
-
-Antes de executar o projeto, é necessário ter instalado:
-
-* Node.js
-* NPM
-* PostgreSQL
-* Ollama
-* Git
-
----
-
-# ▶️ Como executar
-
-## 1. Clone o projeto
+## 1. Clone o repositório
 
 ```bash
 git clone URL_DO_REPOSITORIO
@@ -733,7 +742,7 @@ git clone URL_DO_REPOSITORIO
 ## 2. Entre na pasta
 
 ```bash
-cd controle-estoque
+cd controle-estoque-react
 ```
 
 ## 3. Instale as dependências
@@ -742,71 +751,48 @@ cd controle-estoque
 npm install
 ```
 
----
+## 4. Configure as variáveis de ambiente
 
-# 🗄️ Configuração do banco de dados
-
-Crie um banco PostgreSQL e configure a variável de ambiente:
+Crie um arquivo `.env` na raiz do projeto:
 
 ```env
 DATABASE_URL="postgresql://USUARIO:SENHA@localhost:5432/NOME_DO_BANCO"
+JWT_SECRET="sua-chave-secreta"
+GEMINI_API_KEY="sua-chave-do-gemini"
+VITE_API_URL="http://localhost:3001/api"
 ```
 
-Depois execute:
-
-```bash
-npx prisma migrate dev
-```
-
-Gere o Prisma Client:
+## 5. Sincronize o banco
 
 ```bash
 npx prisma generate
 ```
 
----
-
-# 🤖 Configuração do Ollama
-
-Instale o Ollama e certifique-se de que ele esteja em execução.
-
-Baixe o modelo utilizado pelo projeto:
+Depois:
 
 ```bash
-ollama pull qwen2.5:3b
+npx prisma migrate dev
 ```
 
-Execute o modelo:
+ou, para sincronizar diretamente o schema:
 
 ```bash
-ollama run qwen2.5:3b
+npx prisma db push
 ```
 
-A API do Ollama normalmente estará disponível em:
-
-```text
-http://localhost:11434
-```
-
----
-
-# ▶️ Executando o projeto
-
-## Front-end
-
-Em um terminal:
+## 6. Inicie o Front-end
 
 ```bash
 npm run dev
 ```
 
-A aplicação estará disponível em:
+Aplicação:
 
 ```text
 http://localhost:5173
 ```
 
-## Back-end
+## 7. Inicie o Back-end
 
 Em outro terminal:
 
@@ -814,7 +800,7 @@ Em outro terminal:
 npm run server
 ```
 
-A API estará disponível em:
+API:
 
 ```text
 http://localhost:3001
@@ -822,15 +808,15 @@ http://localhost:3001
 
 ---
 
-# 🧪 Verificando a API
+# 🧪 Testando a API
 
-Depois de iniciar o servidor, execute:
+Com o servidor rodando:
 
 ```bash
 curl http://localhost:3001/api/test
 ```
 
-Resultado esperado:
+Resposta esperada:
 
 ```json
 {
@@ -838,27 +824,11 @@ Resultado esperado:
 }
 ```
 
-Também é possível verificar os produtos:
-
-```bash
-curl http://localhost:3001/api/products
-```
-
-Categorias:
-
-```bash
-curl http://localhost:3001/api/categories
-```
-
-Histórico:
-
-```bash
-curl http://localhost:3001/api/movements
-```
-
 ---
 
 # 📜 Scripts disponíveis
+
+### Desenvolvimento
 
 ```bash
 npm run dev
@@ -866,60 +836,56 @@ npm run dev
 
 Executa o Front-end em modo de desenvolvimento.
 
+### Back-end
+
 ```bash
 npm run server
 ```
 
 Executa o servidor Express.
 
+### Build
+
 ```bash
 npm run build
 ```
 
-Realiza a compilação de produção do projeto.
+Gera a versão de produção do Front-end.
+
+### Lint
 
 ```bash
 npm run lint
 ```
 
-Executa a verificação de código utilizando ESLint.
+Executa o ESLint.
 
----
-
-# ✅ Validação do projeto
-
-Durante o desenvolvimento, o projeto utiliza:
+### Preview
 
 ```bash
-npm run lint
+npm run preview
 ```
 
-para verificar problemas relacionados ao código.
-
-A compilação de produção pode ser validada com:
-
-```bash
-npm run build
-```
+Executa uma prévia do build de produção do Front-end.
 
 ---
 
 # 🧠 Conceitos aplicados
 
-O projeto utiliza diversos conceitos de desenvolvimento web e engenharia de software:
+Este projeto reúne diversos conceitos importantes de desenvolvimento de software.
 
 ### Front-end
 
-* Componentização em React
-* Hooks
+* Componentização
+* React Hooks
 * Estado e propriedades
-* Renderização condicional
-* Renderização dinâmica de listas
 * Formulários controlados
-* Tipagem com TypeScript
-* React Markdown
+* TypeScript
+* Renderização condicional
+* Renderização dinâmica
 * Design responsivo
 * Tailwind CSS
+* Consumo de API REST
 
 ### Back-end
 
@@ -927,107 +893,118 @@ O projeto utiliza diversos conceitos de desenvolvimento web e engenharia de soft
 * Express
 * API REST
 * Middlewares
+* Autenticação
+* Autorização
+* JWT
+* Bcrypt
 * CORS
 * Helmet
 * Rate limiting
-* Validação de requisições
+* Validação de dados
 * Tratamento de erros
-* Comunicação com banco de dados
-* Integração com API de IA
 
 ### Banco de dados
 
 * PostgreSQL
+* Modelagem relacional
 * Prisma ORM
-* Migrations
 * Prisma Client
-* Modelagem de dados
-* Persistência de dados
+* Migrations
 * Transações
+* Persistência de dados
 
 ### Inteligência Artificial
 
 * Integração com LLM
-* Ollama
-* Execução local de modelos
+* Google Gemini
 * Engenharia de prompts
-* Contexto baseado em dados do sistema
-* Validação de dados antes do processamento pela IA
-* Uso de IA para linguagem natural sobre dados estruturados
+* Contexto baseado em dados estruturados
+* Respostas determinísticas para cálculos
+* Uso de IA para linguagem natural
 
-### Desenvolvimento
+### DevOps / Deploy
 
 * Git
 * GitHub
-* NPM
-* VS Code
-* Organização de responsabilidades
-* Separação entre Front-end e Back-end
+* Variáveis de ambiente
+* Deploy do Front-end
+* Deploy do Back-end
+* Banco de dados em nuvem
+* Integração entre serviços
+
+---
+
+# 🌐 Arquitetura em produção
+
+```text
+                  INTERNET
+                      │
+                      ▼
+          ┌─────────────────────┐
+          │       Vercel        │
+          │   React + Vite      │
+          └──────────┬──────────┘
+                     │
+                     │ HTTPS
+                     ▼
+          ┌─────────────────────┐
+          │       Render        │
+          │ Node + Express      │
+          │      REST API       │
+          └───────┬───────┬─────┘
+                  │       │
+                  │       │ HTTPS
+                  │       ▼
+                  │  ┌───────────────┐
+                  │  │ Google Gemini │
+                  │  └───────────────┘
+                  │
+                  ▼
+          ┌─────────────────────┐
+          │      Supabase       │
+          │     PostgreSQL      │
+          └─────────────────────┘
+```
+
+Essa arquitetura separa as responsabilidades da aplicação e permite que o Front-end, Back-end e banco de dados sejam mantidos de forma independente.
 
 ---
 
 # 🎯 Objetivo do projeto
 
-O projeto foi desenvolvido com o objetivo de aplicar na prática conceitos de desenvolvimento de software através da construção de uma aplicação completa de gerenciamento de estoque.
+O principal objetivo deste projeto é demonstrar a capacidade de desenvolver uma aplicação completa, indo além da construção de uma interface.
 
-A aplicação envolve diferentes camadas de desenvolvimento:
+O projeto envolve:
 
 ```text
 Interface
    ↓
-Front-end
+React
    ↓
 API REST
    ↓
-Back-end
+Express
    ↓
-ORM
+Autenticação
    ↓
-Banco de dados
+Prisma
+   ↓
+PostgreSQL
 ```
 
-Além disso, o projeto demonstra a integração de uma aplicação tradicional com Inteligência Artificial local:
+Além disso, existe uma camada de Inteligência Artificial:
 
 ```text
-Sistema
-   ↓
-Dados estruturados
-   ↓
-Processamento
-   ↓
-Ollama
-   ↓
-Modelo de linguagem
-   ↓
-Linguagem natural
+Dados do sistema
+      ↓
+Cálculos objetivos
+      ↓
+Google Gemini
+      ↓
+Interpretação em linguagem natural
 ```
 
-O objetivo é demonstrar não apenas a criação de interfaces, mas também a capacidade de desenvolver e integrar diferentes tecnologias em uma aplicação funcional.
-
----
-
-# 🚧 Possíveis evoluções
-
-Algumas funcionalidades que podem ser adicionadas futuramente:
-
-* Sistema de autenticação
-* Login e controle de usuários
-* Diferentes níveis de acesso
-* Controle de permissões
-* Histórico associado ao usuário responsável pela operação
-* Dashboard com gráficos
-* Relatórios avançados
-* Exportação de relatórios
-* Notificações de estoque baixo
-* Controle de fornecedores
-* Controle de entradas e saídas por usuário
-* Deploy do Front-end
-* Deploy da API
-* Banco de dados em ambiente de produção
-* Variáveis de ambiente para diferentes ambientes
-* Docker
-* Testes automatizados
-* Paginação de produtos e movimentações
+Dessa forma, o projeto demonstra conhecimentos em **Front-end, Back-end, banco de dados, autenticação, segurança, APIs, cloud e Inteligência Artificial** dentro de uma aplicação única.
 
 ---
 
@@ -1035,9 +1012,9 @@ Algumas funcionalidades que podem ser adicionadas futuramente:
 
 ## Stanley Vale
 
-Estudante de Gestão da Tecnologia da Informação, com foco em desenvolvimento de software e interesse em desenvolvimento Front-end, Back-end, integração de APIs, banco de dados e Inteligência Artificial.
+Estudante de Gestão da Tecnologia da Informação com foco em desenvolvimento de software e interesse em Front-end, Back-end, APIs, bancos de dados e Inteligência Artificial.
 
-### Tecnologias em estudo/prática
+### Tecnologias em prática
 
 * React
 * TypeScript
@@ -1052,23 +1029,20 @@ Estudante de Gestão da Tecnologia da Informação, com foco em desenvolvimento 
 * Prisma
 * Git
 * GitHub
-* Ollama
-* Inteligência Artificial
+* Google Gemini
 
 ### Links
 
 **LinkedIn:**
-[linkedin.com/in/stanleyvale](https://www.linkedin.com/in/stanleyvale)
+https://www.linkedin.com/in/stanleyvale
 
 **GitHub:**
-[github.com/stanleyva71](https://github.com/stanleyva71)
+https://github.com/stanleyva71
 
 ---
 
-# 📌 Observação
+# 📌 Status
 
-A funcionalidade de Inteligência Artificial depende do Ollama estar instalado e em execução na máquina, além do modelo `qwen2.5:3b` estar disponível.
+**Em desenvolvimento contínuo.**
 
-Sem o Ollama, as funcionalidades de gerenciamento de produtos, categorias e histórico continuam disponíveis normalmente, desde que o PostgreSQL e a API estejam funcionando.
-
----
+O projeto já possui Front-end, Back-end, banco de dados, autenticação, controle de permissões, histórico de movimentações, integração com IA e deploy em nuvem.
