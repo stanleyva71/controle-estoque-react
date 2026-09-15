@@ -8,8 +8,7 @@
     "server": "tsx server/index.ts",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-    "postinstall": "prisma skills sync || exit 0"
+    "preview": "vite preview"
   },
   "dependencies": {
     "@google/genai": "^2.22.0",
