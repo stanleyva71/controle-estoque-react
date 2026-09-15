@@ -336,20 +336,12 @@ function Dashboard({
 
       setAnalysisError('');
 
-      const response = await fetch(
-        'http://localhost:3001/api/analisar-estoque',
-        {
-          method: 'POST',
-
-          headers: {
-            'Content-Type': 'application/json',
-          },
-
-          body: JSON.stringify({
-            products,
-          }),
-        }
-      );
+      const response = await apiFetch('/analisar-estoque', {
+        method: 'POST',
+        body: JSON.stringify({
+          products,
+        }),
+      });
 
       const data = await response.json();
 
@@ -394,13 +386,8 @@ function Dashboard({
     setLoadingChat(true);
 
     try {
-      const response = await fetch('http://localhost:3001/api/chat-estoque', {
+      const response = await apiFetch('/chat-estoque', {
         method: 'POST',
-
-        headers: {
-          'Content-Type': 'application/json',
-        },
-
         body: JSON.stringify({
           products,
           question: trimmedQuestion,
