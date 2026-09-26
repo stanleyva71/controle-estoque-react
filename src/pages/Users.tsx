@@ -6,7 +6,7 @@ import {
   Edit,
   Plus,
   Shield,
-  Trash2,
+  UserRoundCheck,
   UserRound,
   X,
   Loader2,
@@ -25,6 +25,7 @@ interface User {
   email: string;
   role: 'ADMIN' | 'OPERADOR' | 'VISUALIZACAO';
   createdAt: string;
+  active: boolean;
 }
 
 type UserFormData = {
@@ -36,6 +37,7 @@ type UserFormData = {
 
 interface UsersProps {
   onToast: (message: string) => void;
+  currentUserId: number | null;
   onUserUpdated: (user: {
     id: number;
     name: string;
@@ -46,12 +48,12 @@ interface UsersProps {
 
 const USERS_PER_PAGE = 5;
 
-function Users({ onToast, onUserUpdated }: UsersProps) {
+function Users({ onToast, currentUserId, onUserUpdated }: UsersProps) {
   const [users, setUsers] = useState<User[]>([]);
-  const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
+  const [statusTarget, setStatusTarget] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [togglingStatusId, setTogglingStatusId] = useState<number | null>(null);
 
   const [showForm, setShowForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -205,12 +207,16 @@ function Users({ onToast, onUserUpdated }: UsersProps) {
           currentUsers.map((user) => (user.id === editingUser.id ? data : user))
         );
 
-        onUserUpdated({
-          id: data.id,
-          name: data.name,
-          email: data.email,
-          role: data.role,
-        });
+        // Somente atualiza a sessão atual se o usuário editado
+        // for o próprio usuário autenticado.
+        if (data.id === currentUserId) {
+          onUserUpdated({
+            id: data.id,
+            name: data.name,
+            email: data.email,
+            role: data.role,
+          });
+        }
 
         onToast('Usuário atualizado com sucesso.');
       } else {
@@ -236,39 +242,65 @@ function Users({ onToast, onUserUpdated }: UsersProps) {
   }
 
   // =========================
-  // Excluir usuário
+  // Ativar / desativar usuário
   // =========================
 
-  async function handleDelete(user: User) {
-    try {
-      setDeletingId(user.id);
+  async function handleToggleStatus(user: User) {
+    if (user.id === currentUserId) {
+      showError('Você não pode desativar o próprio usuário.');
+      return;
+    }
 
-      const response = await apiFetch(`/users/${user.id}`, {
-        method: 'DELETE',
+    try {
+      setTogglingStatusId(user.id);
+
+      const response = await apiFetch(`/users/${user.id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          active: !user.active,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Não foi possível excluir o usuário.');
+        throw new Error(
+          data.error ||
+            `Não foi possível ${user.active ? 'desativar' : 'reativar'} o usuário.`
+        );
       }
 
       setUsers((currentUsers) =>
-        currentUsers.filter((currentUser) => currentUser.id !== user.id)
+        currentUsers.map((currentUser) =>
+          currentUser.id === user.id
+            ? {
+                ...currentUser,
+                active: data.active,
+              }
+            : currentUser
+        )
       );
 
-      onToast(data.message || 'Usuário excluído com sucesso.');
+      onToast(
+        data.message ||
+          `"${user.name}" foi ${
+            data.active ? 'reativado' : 'desativado'
+          } com sucesso.`
+      );
     } catch (error) {
-      console.error('ERRO AO EXCLUIR USUÁRIO:', error);
+      console.error(
+        'ERRO AO ALTERAR STATUS DO USUÁRIO:',
+        error
+      );
 
       showError(
         error instanceof Error
           ? error.message
-          : 'Não foi possível excluir o usuário.'
+          : 'Não foi possível alterar o status do usuário.'
       );
     } finally {
-      setDeletingId(null);
-      setDeleteTarget(null);
+      setTogglingStatusId(null);
+      setStatusTarget(null);
     }
   }
 
@@ -394,13 +426,13 @@ function Users({ onToast, onUserUpdated }: UsersProps) {
         </div>
       )}
 
-      {/* Modal de confirmação de exclusão */}
-      {deleteTarget && (
+      {/* Modal de confirmação de desativação/reativação */}
+      {statusTarget && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
           onClick={() => {
-            if (deletingId === null) {
-              setDeleteTarget(null);
+            if (togglingStatusId === null) {
+              setStatusTarget(null);
             }
           }}
         >
@@ -409,36 +441,46 @@ function Users({ onToast, onUserUpdated }: UsersProps) {
             onClick={(event) => event.stopPropagation()}
           >
             <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-red-100 text-red-600">
-                <Trash2 size={22} />
+              <div
+                className={`flex h-11 w-11 items-center justify-center rounded-full ${
+                  statusTarget.active
+                    ? 'bg-amber-100 text-amber-600'
+                    : 'bg-emerald-100 text-emerald-600'
+                }`}
+              >
+                <UserRoundCheck size={22} />
               </div>
 
               <div>
                 <h2 className="text-lg font-bold text-slate-900">
-                  Excluir usuário?
+                  {statusTarget.active
+                    ? 'Desativar usuário?'
+                    : 'Reativar usuário?'}
                 </h2>
 
                 <p className="mt-1 text-sm text-slate-500">
-                  Esta ação não poderá ser desfeita.
+                  {statusTarget.active
+                    ? 'O usuário não poderá mais acessar o sistema.'
+                    : 'O usuário poderá voltar a acessar o sistema.'}
                 </p>
               </div>
             </div>
 
             <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
               <p className="font-semibold text-slate-800">
-                {deleteTarget.name}
+                {statusTarget.name}
               </p>
 
               <p className="mt-1 text-sm text-slate-500">
-                {deleteTarget.email}
+                {statusTarget.email}
               </p>
             </div>
 
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
               <button
                 type="button"
-                onClick={() => setDeleteTarget(null)}
-                disabled={deletingId !== null}
+                onClick={() => setStatusTarget(null)}
+                disabled={togglingStatusId !== null}
                 className="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Cancelar
@@ -446,17 +488,25 @@ function Users({ onToast, onUserUpdated }: UsersProps) {
 
               <button
                 type="button"
-                onClick={() => handleDelete(deleteTarget)}
-                disabled={deletingId !== null}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={() => handleToggleStatus(statusTarget)}
+                disabled={togglingStatusId !== null}
+                className={`inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60 ${
+                  statusTarget.active
+                    ? 'bg-amber-600 hover:bg-amber-700'
+                    : 'bg-emerald-600 hover:bg-emerald-700'
+                }`}
               >
-                {deletingId === deleteTarget.id && (
+                {togglingStatusId === statusTarget.id && (
                   <Loader2 size={17} className="animate-spin" />
                 )}
 
-                {deletingId === deleteTarget.id
-                  ? 'Excluindo...'
-                  : 'Excluir usuário'}
+                {togglingStatusId === statusTarget.id
+                  ? statusTarget.active
+                    ? 'Desativando...'
+                    : 'Reativando...'
+                  : statusTarget.active
+                    ? 'Desativar usuário'
+                    : 'Reativar usuário'}
               </button>
             </div>
           </div>
@@ -727,7 +777,7 @@ function Users({ onToast, onUserUpdated }: UsersProps) {
               </h3>
 
               <p className="mt-1 text-sm text-slate-500">
-                Cadastre o primeiro usuário para começar.
+                Nenhum usuário cadastrado.
               </p>
             </div>
           ) : filteredUsers.length === 0 ? (
@@ -767,6 +817,10 @@ function Users({ onToast, onUserUpdated }: UsersProps) {
 
                       <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
                         Perfil
+                      </th>
+
+                      <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Status
                       </th>
 
                       <th className="px-5 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -814,6 +868,25 @@ function Users({ onToast, onUserUpdated }: UsersProps) {
                           </span>
                         </td>
 
+                        <td className="px-5 py-4">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${
+                              user.active
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-slate-200 text-slate-600'
+                            }`}
+                          >
+                            <span
+                              className={`h-2 w-2 rounded-full ${
+                                user.active
+                                  ? 'bg-emerald-500'
+                                  : 'bg-slate-400'
+                              }`}
+                            />
+                            {user.active ? 'Ativo' : 'Inativo'}
+                          </span>
+                        </td>
+
                         <td className="px-5 py-4 text-sm text-slate-500">
                           {new Date(user.createdAt).toLocaleDateString('pt-BR')}
                         </td>
@@ -823,7 +896,7 @@ function Users({ onToast, onUserUpdated }: UsersProps) {
                             <button
                               type="button"
                               onClick={() => handleEdit(user)}
-                              disabled={deletingId !== null}
+                              disabled={togglingStatusId !== null}
                               className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-50"
                             >
                               <Edit size={16} />
@@ -832,16 +905,37 @@ function Users({ onToast, onUserUpdated }: UsersProps) {
 
                             <button
                               type="button"
-                              onClick={() => setDeleteTarget(user)}
-                              disabled={deletingId !== null}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                              onClick={() => {
+                                if (user.id === currentUserId) {
+                                  showError('Você não pode desativar o próprio usuário.');
+                                  return;
+                                }
+
+                                setStatusTarget(user);
+                              }}
+                              disabled={
+                                togglingStatusId !== null ||
+                                user.id === currentUserId
+                              }
+                              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50 ${
+                                user.active
+                                  ? 'border-amber-200 text-amber-700 hover:bg-amber-50'
+                                  : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50'
+                              }`}
+                              title={
+                                user.id === currentUserId
+                                  ? 'Você não pode desativar o próprio usuário'
+                                  : user.active
+                                    ? 'Desativar usuário'
+                                    : 'Reativar usuário'
+                              }
                             >
-                              {deletingId === user.id ? (
+                              {togglingStatusId === user.id ? (
                                 <Loader2 size={16} className="animate-spin" />
                               ) : (
-                                <Trash2 size={16} />
+                                <UserRoundCheck size={16} />
                               )}
-                              Excluir
+                              {user.active ? 'Desativar' : 'Reativar'}
                             </button>
                           </div>
                         </td>

@@ -120,8 +120,12 @@ export async function apiFetch(
   });
 
   if (response.status === 401) {
-    logout();
-  }
+  logout();
+
+  window.dispatchEvent(
+    new Event('auth:logout')
+  );
+}
 
   return response;
 }

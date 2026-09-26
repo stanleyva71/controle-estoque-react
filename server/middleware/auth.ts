@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
-
 import jwt from 'jsonwebtoken';
+
+import { prisma } from '../lib/prisma';
 
 export interface AuthenticatedRequest extends Request {
   user?: {
@@ -9,7 +10,7 @@ export interface AuthenticatedRequest extends Request {
   };
 }
 
-export function auth(
+export async function auth(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
@@ -54,9 +55,41 @@ export function auth(
       });
     }
 
+    // Busca o usuário diretamente no banco.
+    // Isso permite verificar se a conta continua ativa
+    // e também usar o perfil atual do usuário.
+    const user = await prisma.user.findUnique({
+      where: {
+        id: decoded.userId,
+      },
+      select: {
+        id: true,
+        role: true,
+        active: true,
+      },
+    });
+
+    // Usuário não existe mais.
+    if (!user) {
+      return res.status(401).json({
+        error: 'Usuário não encontrado.',
+      });
+    }
+
+    // Usuário foi desativado.
+    // Retornamos 401 para que o frontend encerre
+    // automaticamente a sessão atual.
+    if (!user.active) {
+      return res.status(401).json({
+        error: 'Usuário desativado.',
+      });
+    }
+
+    // Usa o perfil atual salvo no banco,
+    // em vez do role antigo que estava no JWT.
     req.user = {
-      userId: decoded.userId,
-      role: decoded.role,
+      userId: user.id,
+      role: user.role,
     };
 
     next();

@@ -7,11 +7,8 @@ import jwt from 'jsonwebtoken';
 import { UserRole } from '@prisma/client';
 
 import { auth, type AuthenticatedRequest } from './middleware/auth';
-
 import { authorize } from './middleware/authorize';
-
 import { prisma } from './lib/prisma';
-
 import { generateGeminiText } from './lib/gemini';
 
 const app = express();
@@ -103,6 +100,12 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
       });
     }
 
+    if (!user.active) {
+      return res.status(403).json({
+        error: 'Usuário desativado.',
+      });
+    }
+
     const passwordMatches = await bcrypt.compare(password, user.passwordHash);
 
     if (!passwordMatches) {
@@ -129,6 +132,7 @@ app.post('/api/auth/login', authLimiter, async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        active: user.active,
       },
     });
   } catch (error) {
@@ -184,12 +188,20 @@ app.post(
       const userId = req.user!.userId;
 
       const user = await prisma.user.findUnique({
-        where: { id: userId },
+        where: {
+          id: userId,
+        },
       });
 
       if (!user) {
         return res.status(404).json({
           error: 'Usuário não encontrado.',
+        });
+      }
+
+      if (!user.active) {
+        return res.status(403).json({
+          error: 'Usuário desativado.',
         });
       }
 
@@ -246,7 +258,10 @@ app.get(
 // Usuários
 // =========================
 
-// CADASTRAR USUÁRIO - somente ADMIN
+// =========================
+// CADASTRAR USUÁRIO
+// Somente ADMIN
+// =========================
 
 app.post('/api/users', authorize('ADMIN'), async (req, res) => {
   try {
@@ -308,6 +323,7 @@ app.post('/api/users', authorize('ADMIN'), async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      active: user.active,
       createdAt: user.createdAt.toISOString(),
     });
   } catch (error) {
@@ -319,7 +335,10 @@ app.post('/api/users', authorize('ADMIN'), async (req, res) => {
   }
 });
 
-// EDITAR USUÁRIO - somente ADMIN
+// =========================
+// EDITAR USUÁRIO
+// Somente ADMIN
+// =========================
 
 app.put('/api/users/:id', authorize('ADMIN'), async (req, res) => {
   try {
@@ -356,7 +375,9 @@ app.put('/api/users/:id', authorize('ADMIN'), async (req, res) => {
     const normalizedEmail = email.trim().toLowerCase();
 
     const existingUser = await prisma.user.findUnique({
-      where: { id },
+      where: {
+        id,
+      },
     });
 
     if (!existingUser) {
@@ -402,7 +423,9 @@ app.put('/api/users/:id', authorize('ADMIN'), async (req, res) => {
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id },
+      where: {
+        id,
+      },
       data,
     });
 
@@ -411,6 +434,7 @@ app.put('/api/users/:id', authorize('ADMIN'), async (req, res) => {
       name: updatedUser.name,
       email: updatedUser.email,
       role: updatedUser.role,
+      active: updatedUser.active,
       createdAt: updatedUser.createdAt.toISOString(),
     });
   } catch (error) {
@@ -422,53 +446,83 @@ app.put('/api/users/:id', authorize('ADMIN'), async (req, res) => {
   }
 });
 
-// EXCLUIR USUÁRIO - somente ADMIN
+// =========================
+// DESATIVAR / REATIVAR USUÁRIO
+// Somente ADMIN
+// =========================
 
-app.delete('/api/users/:id', authorize('ADMIN'), async (req, res) => {
-  try {
-    const id = Number(req.params.id);
+app.patch(
+  '/api/users/:id/status',
+  authorize('ADMIN'),
+  async (req: AuthenticatedRequest, res) => {
+    try {
+      const id = Number(req.params.id);
 
-    if (!Number.isInteger(id)) {
-      return res.status(400).json({
-        error: 'ID do usuário inválido.',
+      if (!Number.isInteger(id)) {
+        return res.status(400).json({
+          error: 'ID do usuário inválido.',
+        });
+      }
+
+      const { active } = req.body;
+
+      if (typeof active !== 'boolean') {
+        return res.status(400).json({
+          error: 'O status do usuário é inválido.',
+        });
+      }
+
+      if (id === req.user?.userId) {
+        return res.status(400).json({
+          error: 'Você não pode alterar o status do próprio usuário.',
+        });
+      }
+
+      const user = await prisma.user.findUnique({
+        where: {
+          id,
+        },
+      });
+
+      if (!user) {
+        return res.status(404).json({
+          error: 'Usuário não encontrado.',
+        });
+      }
+
+      const updatedUser = await prisma.user.update({
+        where: {
+          id,
+        },
+        data: {
+          active,
+        },
+      });
+
+      return res.json({
+        id: updatedUser.id,
+        name: updatedUser.name,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        active: updatedUser.active,
+        message: `"${updatedUser.name}" foi ${
+          updatedUser.active ? 'reativado' : 'desativado'
+        } com sucesso.`,
+      });
+    } catch (error) {
+      console.error('ERRO AO ALTERAR STATUS DO USUÁRIO:', error);
+
+      return res.status(500).json({
+        error: 'Não foi possível alterar o status do usuário.',
       });
     }
-
-    const user = await prisma.user.findUnique({
-      where: { id },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        error: 'Usuário não encontrado.',
-      });
-    }
-
-    const authenticatedReq = req as AuthenticatedRequest;
-
-    if (user.id === authenticatedReq.user?.userId) {
-      return res.status(400).json({
-        error: 'Você não pode excluir o próprio usuário.',
-      });
-    }
-
-    await prisma.user.delete({
-      where: { id },
-    });
-
-    return res.json({
-      message: `"${user.name}" foi excluído com sucesso.`,
-    });
-  } catch (error) {
-    console.error('ERRO AO EXCLUIR USUÁRIO:', error);
-
-    return res.status(500).json({
-      error: 'Não foi possível excluir o usuário.',
-    });
   }
-});
+);
 
-// LISTAR USUÁRIOS - somente ADMIN
+// =========================
+// LISTAR USUÁRIOS
+// Somente ADMIN
+// =========================
 
 app.get('/api/users', authorize('ADMIN'), async (_req, res) => {
   try {
@@ -484,6 +538,7 @@ app.get('/api/users', authorize('ADMIN'), async (_req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        active: user.active,
         createdAt: user.createdAt.toISOString(),
       }))
     );
@@ -500,7 +555,10 @@ app.get('/api/users', authorize('ADMIN'), async (_req, res) => {
 // Produtos
 // =========================
 
-// CONSULTAR - todos os perfis
+// =========================
+// CONSULTAR
+// Todos os perfis
+// =========================
 
 app.get(
   '/api/products',
@@ -533,7 +591,10 @@ app.get(
   }
 );
 
-// CONSULTAR PRODUTO - todos os perfis
+// =========================
+// CONSULTAR PRODUTO
+// Todos os perfis
+// =========================
 
 app.get(
   '/api/products/:id',
@@ -549,7 +610,9 @@ app.get(
       }
 
       const product = await prisma.product.findUnique({
-        where: { id },
+        where: {
+          id,
+        },
       });
 
       if (!product) {
@@ -576,7 +639,10 @@ app.get(
   }
 );
 
-// CRIAR - ADMIN e OPERADOR
+// =========================
+// CRIAR
+// ADMIN e OPERADOR
+// =========================
 
 app.post(
   '/api/products',
@@ -657,7 +723,10 @@ app.post(
   }
 );
 
-// EDITAR - ADMIN e OPERADOR
+// =========================
+// EDITAR
+// ADMIN e OPERADOR
+// =========================
 
 app.put(
   '/api/products/:id',
@@ -700,7 +769,9 @@ app.put(
 
       const result = await prisma.$transaction(async (tx) => {
         const existingProduct = await tx.product.findUnique({
-          where: { id },
+          where: {
+            id,
+          },
         });
 
         if (!existingProduct) {
@@ -708,7 +779,9 @@ app.put(
         }
 
         const updatedProduct = await tx.product.update({
-          where: { id },
+          where: {
+            id,
+          },
           data: {
             name: name.trim(),
             category: category.trim(),
@@ -794,7 +867,10 @@ app.put(
   }
 );
 
-// EXCLUIR - somente ADMIN
+// =========================
+// EXCLUIR PRODUTO
+// Somente ADMIN
+// =========================
 
 app.delete(
   '/api/products/:id',
@@ -811,7 +887,9 @@ app.delete(
 
       const result = await prisma.$transaction(async (tx) => {
         const product = await tx.product.findUnique({
-          where: { id },
+          where: {
+            id,
+          },
         });
 
         if (!product) {
@@ -832,7 +910,9 @@ app.delete(
         });
 
         await tx.product.delete({
-          where: { id },
+          where: {
+            id,
+          },
         });
 
         return product;
@@ -861,7 +941,10 @@ app.delete(
 // Histórico
 // =========================
 
-// CONSULTAR - todos os perfis
+// =========================
+// CONSULTAR
+// Todos os perfis
+// =========================
 
 app.get(
   '/api/movements',
@@ -917,7 +1000,10 @@ app.get(
 // Categorias
 // =========================
 
-// CONSULTAR - todos os perfis
+// =========================
+// CONSULTAR
+// Todos os perfis
+// =========================
 
 app.get(
   '/api/categories',
@@ -947,7 +1033,10 @@ app.get(
   }
 );
 
-// CRIAR - ADMIN e OPERADOR
+// =========================
+// CRIAR
+// ADMIN e OPERADOR
+// =========================
 
 app.post(
   '/api/categories',
@@ -1000,7 +1089,10 @@ app.post(
   }
 );
 
-// EDITAR - ADMIN e OPERADOR
+// =========================
+// EDITAR
+// ADMIN e OPERADOR
+// =========================
 
 app.put(
   '/api/categories/:id',
@@ -1027,7 +1119,9 @@ app.put(
 
       const result = await prisma.$transaction(async (tx) => {
         const category = await tx.category.findUnique({
-          where: { id },
+          where: {
+            id,
+          },
         });
 
         if (!category) {
@@ -1054,7 +1148,9 @@ app.put(
         }
 
         await tx.category.update({
-          where: { id },
+          where: {
+            id,
+          },
           data: {
             name: trimmedName,
           },
@@ -1073,7 +1169,9 @@ app.put(
         });
 
         const updatedCategory = await tx.category.findUnique({
-          where: { id },
+          where: {
+            id,
+          },
         });
 
         return {
@@ -1109,7 +1207,10 @@ app.put(
   }
 );
 
-// EXCLUIR - somente ADMIN
+// =========================
+// EXCLUIR
+// Somente ADMIN
+// =========================
 
 app.delete('/api/categories/:id', authorize('ADMIN'), async (req, res) => {
   try {
@@ -1122,7 +1223,9 @@ app.delete('/api/categories/:id', authorize('ADMIN'), async (req, res) => {
     }
 
     const category = await prisma.category.findUnique({
-      where: { id },
+      where: {
+        id,
+      },
     });
 
     if (!category) {
@@ -1147,7 +1250,9 @@ app.delete('/api/categories/:id', authorize('ADMIN'), async (req, res) => {
     }
 
     await prisma.category.delete({
-      where: { id },
+      where: {
+        id,
+      },
     });
 
     return res.json({
@@ -1165,6 +1270,7 @@ app.delete('/api/categories/:id', authorize('ADMIN'), async (req, res) => {
 // =========================
 // Análise automática de estoque
 // =========================
+
 // TODOS OS PERFIS
 
 app.post(
@@ -1172,9 +1278,6 @@ app.post(
   authorize('ADMIN', 'OPERADOR', 'VISUALIZACAO'),
   async (_req, res) => {
     try {
-      // Busca diretamente do banco
-      // para garantir que a análise use
-      // os dados reais do sistema.
       const products = await prisma.product.findMany({
         orderBy: {
           id: 'asc',
@@ -1199,7 +1302,6 @@ app.post(
       // Indicadores
       // =========================
 
-      // Estoque baixo = quantidade <= 5
       const lowStockProducts = productData.filter(
         (product) => product.quantity <= 5
       );
@@ -1220,8 +1322,6 @@ app.post(
         0
       );
 
-      // Maior quantidade
-
       const highestStockQuantity =
         productData.length > 0
           ? Math.max(...productData.map((product) => product.quantity))
@@ -1230,8 +1330,6 @@ app.post(
       const highestStockProducts = productData.filter(
         (product) => product.quantity === highestStockQuantity
       );
-
-      // Menor quantidade
 
       const lowestStockQuantity =
         productData.length > 0
@@ -1242,8 +1340,6 @@ app.post(
         (product) => product.quantity === lowestStockQuantity
       );
 
-      // Maior preço
-
       const highestPrice =
         productData.length > 0
           ? Math.max(...productData.map((product) => product.price))
@@ -1252,8 +1348,6 @@ app.post(
       const highestPriceProducts = productData.filter(
         (product) => product.price === highestPrice
       );
-
-      // Menor preço
 
       const lowestPrice =
         productData.length > 0
@@ -1282,7 +1376,6 @@ app.post(
 
         if (existing) {
           existing.products += 1;
-
           existing.quantity += product.quantity;
         } else {
           categoryMap.set(product.category, {
@@ -1302,17 +1395,29 @@ app.post(
       const systemSummary = {
         totalProducts,
         totalQuantity,
-        totalStockValue,
+        totalStockValue: `R$ ${totalStockValue.toLocaleString('pt-BR', {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2,
+        })}`,
+
+        lowStockCount: lowStockProducts.length,
         lowStockProducts,
+
+        zeroStockCount: zeroStockProducts.length,
         zeroStockProducts,
+
         highestStockQuantity,
         highestStockProducts,
+
         lowestStockQuantity,
         lowestStockProducts,
+
         highestPrice,
         highestPriceProducts,
+
         lowestPrice,
         lowestPriceProducts,
+
         categorySummary,
       };
 
@@ -1321,72 +1426,273 @@ app.post(
       // =========================
 
       const prompt = `
-Você é um assistente de gestão de estoque.
+Você é um assistente especializado em gestão de estoque.
 
-O sistema já calculou todos os dados abaixo.
+Sua tarefa é elaborar um RELATÓRIO GERENCIAL COMPLETO sobre o estoque atual.
 
-Sua tarefa é escrever SOMENTE uma parte textual complementar do relatório.
+Os dados fornecidos abaixo foram calculados diretamente pelo sistema e são OFICIAIS.
 
-Os dados apresentados são oficiais.
+Utilize os dados fornecidos para produzir um relatório claro, profissional e fácil de ler.
 
-Não altere os dados.
-Não repita números incorretos.
 Não faça novos cálculos.
 
-=========================
-DADOS OFICIAIS DO SISTEMA
-=========================
-
-${JSON.stringify(systemSummary, null, 2)}
-
-=========================
-REGRAS
-=========================
-
-- Estoque baixo significa quantidade menor ou igual a 5.
-- Quantidade 0 é estoque baixo.
-- Quantidade maior que 5 não é estoque baixo.
-- Não invente outros limites.
-- Não invente vendas.
-- Não invente demanda.
-- Não invente previsão.
-- Não invente problemas.
-- Não diga que um produto é caro ou barato apenas porque possui maior ou menor preço.
-- Não diga que uma quantidade alta significa excesso.
-- Não diga que uma quantidade é suficiente ou insuficiente para a demanda.
-- Não recomende uma quantidade específica de compra.
-- Não diga que uma reposição é urgente sem dados que comprovem urgência.
-- Não confunda categorias diferentes.
-- Use exatamente os nomes dos produtos e categorias fornecidos.
-- Não invente informações que não estejam nos dados.
-
-=========================
-RESPONDA SOMENTE COM
-=========================
-
-### Sugestões para Gestão
-
-Apresente de 2 a 4 sugestões gerais e úteis para acompanhamento e gestão do estoque.
-
-As sugestões podem envolver:
-- acompanhamento do histórico de movimentações;
-- revisão periódica dos produtos;
-- acompanhamento dos produtos com estoque baixo;
-- acompanhamento das categorias;
-- atualização dos cadastros;
-- acompanhamento do valor do estoque.
-
-Não crie problemas para justificar uma sugestão.
-
-### Observação Final
-
-Faça uma conclusão curta e objetiva sobre os dados apresentados.
+Não altere nenhum número.
 
 Não invente informações.
 
-Responda em português do Brasil.
+Não invente vendas, demanda, previsão, fornecedores, custos, problemas ou informações que não estejam nos dados.
 
-Use linguagem natural e profissional.
+==================================================
+DADOS OFICIAIS DO SISTEMA
+==================================================
+
+${JSON.stringify(systemSummary, null, 2)}
+
+==================================================
+REGRAS DOS DADOS
+==================================================
+
+- Estoque baixo significa quantidade menor ou igual a 5 unidades.
+- Quantidade 0 também é considerada estoque baixo.
+- Quantidade maior que 5 não deve ser considerada estoque baixo.
+- Não diga que um produto é caro ou barato apenas porque possui maior ou menor preço.
+- Não diga que uma quantidade alta significa excesso de estoque.
+- Não diga que uma quantidade baixa significa falta de estoque, exceto quando estiver dentro da regra oficial de estoque baixo.
+- Não diga que um produto é suficiente ou insuficiente para a demanda.
+- Não invente necessidade de compra.
+- Não recomende uma quantidade específica de reposição.
+- Não diga que uma reposição é urgente sem dados que comprovem isso.
+- Use exatamente os nomes dos produtos e categorias fornecidos pelo sistema.
+- Não misture produtos de categorias diferentes.
+- Não omita informações importantes fornecidas nos dados.
+
+==================================================
+FORMATAÇÃO OBRIGATÓRIA
+==================================================
+
+IMPORTANTE:
+
+O relatório NÃO deve usar Markdown.
+
+NÃO use:
+- # 
+- ## 
+- ###
+- *
+- **
+- crases
+- tabelas Markdown
+- títulos com símbolos de Markdown
+- listas usando asterisco
+
+Use somente texto simples.
+
+Organize o relatório usando títulos numerados e subtítulos em texto normal.
+
+Use este estilo:
+
+ANÁLISE AUTOMÁTICA DO ESTOQUE
+
+1. VISÃO GERAL DO ESTOQUE
+
+2. SITUAÇÃO DOS PRODUTOS
+
+Produtos com estoque baixo
+• Produto: Nome do produto
+  Quantidade: 2 unidades
+  Categoria: Hardware
+
+Produtos com estoque zerado
+• Nenhum produto com estoque zerado.
+
+3. DESTAQUES DE QUANTIDADE
+
+Maior quantidade em estoque
+• Produto: Nome do produto
+  Quantidade: 22 unidades
+  Categoria: Periféricos
+
+4. ANÁLISE DE PREÇOS
+
+Maior preço
+• Produto: Nome do produto
+  Preço: R$ 50.000,00
+  Categoria: Hardware
+
+5. DISTRIBUIÇÃO POR CATEGORIA
+
+• Periféricos
+  Produtos cadastrados: 5
+  Unidades em estoque: 68
+
+6. PONTOS DE ATENÇÃO
+
+• Acompanhar os produtos classificados com estoque baixo.
+• Acompanhar produtos com estoque zerado.
+• Observar a distribuição do estoque entre as categorias.
+
+7. SUGESTÕES PARA O GESTOR
+
+• Acompanhar periodicamente os produtos com estoque baixo.
+• Revisar os cadastros dos produtos.
+• Acompanhar o histórico de movimentações.
+• Monitorar a distribuição do estoque por categoria.
+• Acompanhar o valor total registrado no estoque.
+
+8. CONCLUSÃO
+
+Escreva uma conclusão curta e objetiva.
+
+
+==================================================
+CONTEÚDO DO RELATÓRIO
+==================================================
+
+1. VISÃO GERAL DO ESTOQUE
+
+Apresente:
+
+• Total de produtos cadastrados.
+• Quantidade total de unidades em estoque.
+• Valor total estimado do estoque.
+• Quantidade de produtos com estoque baixo.
+• Quantidade de produtos com estoque zerado.
+
+Faça uma breve explicação desses indicadores.
+
+2. SITUAÇÃO DOS PRODUTOS
+
+Produtos com estoque baixo:
+
+Liste TODOS os produtos com quantidade menor ou igual a 5.
+
+Para cada produto informe:
+
+• Nome.
+• Quantidade.
+• Categoria.
+
+Produtos com estoque zerado:
+
+Liste TODOS os produtos com quantidade igual a 0.
+
+Para cada produto informe:
+
+• Nome.
+• Quantidade.
+• Categoria.
+
+Se não existirem produtos nessa situação, informe claramente.
+
+3. DESTAQUES DE QUANTIDADE
+
+Informe:
+
+Maior quantidade em estoque
+
+Liste TODOS os produtos com a maior quantidade.
+
+Menor quantidade em estoque
+
+Liste TODOS os produtos com a menor quantidade.
+
+Para cada produto informe nome, quantidade e categoria.
+
+4. ANÁLISE DE PREÇOS
+
+Informe:
+
+Maior preço
+
+Liste TODOS os produtos com o maior preço.
+
+Menor preço
+
+Liste TODOS os produtos com o menor preço.
+
+Para cada produto informe nome, preço e categoria.
+
+Não diga que os produtos são caros ou baratos.
+
+5. DISTRIBUIÇÃO POR CATEGORIA
+
+Apresente TODAS as categorias existentes.
+
+Para cada categoria informe:
+
+• Nome.
+• Quantidade de produtos cadastrados.
+• Quantidade total de unidades em estoque.
+
+Faça uma observação objetiva sobre a distribuição.
+
+6. PONTOS DE ATENÇÃO
+
+Destaque somente pontos que possam ser observados diretamente pelos dados.
+
+Dê prioridade para:
+
+• Produtos com estoque baixo.
+• Produtos com estoque zerado.
+• Diferenças de quantidade entre os produtos.
+• Distribuição por categoria.
+• Valor total do estoque.
+
+Não invente problemas.
+
+7. SUGESTÕES PARA O GESTOR
+
+Apresente de 3 a 5 sugestões práticas relacionadas aos dados encontrados.
+
+As sugestões devem ser gerais e úteis para acompanhamento e organização do estoque.
+
+Não invente problemas.
+
+Não recomende quantidade específica de compra.
+
+8. CONCLUSÃO
+
+Faça uma conclusão curta resumindo a situação atual do estoque.
+
+==================================================
+REGRAS DE VALORES MONETÁRIOS
+==================================================
+
+Todos os valores monetários devem seguir o padrão brasileiro.
+
+Sempre use:
+
+R$ 173.502,00
+R$ 50.000,00
+R$ 102,00
+
+Nunca use:
+
+R$ 173.502
+R$ 50000
+173.502
+
+Sempre utilize duas casas decimais.
+
+Use ponto para milhares e vírgula para centavos.
+
+==================================================
+REGRAS FINAIS
+==================================================
+
+- Responda em português do Brasil.
+- Não use Markdown.
+- Não use #.
+- Não use ##.
+- Não use ###.
+- Não use **.
+- Não use asteriscos para listas.
+- Não use crases.
+- Não mostre JSON.
+- Não mencione que você é uma IA.
+- Não explique como os cálculos foram feitos.
+- Não repita informações desnecessariamente.
+- Seja claro, profissional e objetivo.
 `;
 
       let analysis: string;
@@ -1406,32 +1712,22 @@ Use linguagem natural e profissional.
 
       return res.json({
         analysis,
-
         stats: {
           totalProducts,
           totalQuantity,
           totalStockValue,
-
           lowStockCount: lowStockProducts.length,
-
           lowStockProducts,
-
           zeroStockCount: zeroStockProducts.length,
-
           zeroStockProducts,
-
           highestStockQuantity,
           highestStockProducts,
-
           lowestStockQuantity,
           lowestStockProducts,
-
           highestPrice,
           highestPriceProducts,
-
           lowestPrice,
           lowestPriceProducts,
-
           categorySummary,
         },
       });
@@ -1448,6 +1744,7 @@ Use linguagem natural e profissional.
 // =========================
 // Chat com IA
 // =========================
+
 // TODOS OS PERFIS
 
 app.post(
@@ -1718,39 +2015,51 @@ DADOS CALCULADOS PELO SISTEMA
 =========================
 
 Regra de estoque baixo:
+
 Quantidade menor ou igual a 5.
 
 Produtos com estoque baixo:
+
 ${JSON.stringify(lowStockProducts, null, 2)}
 
 Maior quantidade em estoque:
+
 ${highestStockQuantity}
 
 Produto(s) com maior quantidade:
+
 ${JSON.stringify(highestStockProducts, null, 2)}
 
 Menor quantidade em estoque:
+
 ${lowestStockQuantity}
 
 Produto(s) com menor quantidade:
+
 ${JSON.stringify(lowestStockProducts, null, 2)}
 
 Quantidade total de unidades:
+
 ${totalQuantity}
 
 Valor total do estoque:
+
 R$ ${totalStockValue.toFixed(2)}
 
 Maior preço:
+
 R$ ${highestPrice.toFixed(2)}
 
 Produto(s) com maior preço:
+
 ${JSON.stringify(highestPriceProducts, null, 2)}
 
 Menor preço:
+
 R$ ${lowestPrice.toFixed(2)}
 
 Produto(s) com menor preço:
+
 ${JSON.stringify(lowestPriceProducts, null, 2)}
 
 =========================

@@ -31,6 +31,13 @@ import {
   type AuthUser,
 } from '../utils/auth';
 
+import {
+  getAiAnalysisEnabled,
+  setAiAnalysisEnabled,
+  getAiAssistantEnabled,
+  setAiAssistantEnabled,
+} from '../utils/preferences';
+
 interface SettingsProps {
   user: AuthUser | null;
 }
@@ -69,23 +76,11 @@ function Settings({ user }: SettingsProps) {
   const [apiMessage, setApiMessage] =
     useState('Verificando conexão...');
 
-  const [aiAnalysisEnabled, setAiAnalysisEnabled] =
-    useState<boolean>(() => {
-      return (
-        localStorage.getItem(
-          'estoque-ai-analysis-enabled'
-        ) !== 'false'
-      );
-    });
+  const [aiAnalysisEnabled, setAiAnalysisEnabledState] =
+    useState<boolean>(() => getAiAnalysisEnabled());
 
-  const [aiAssistantEnabled, setAiAssistantEnabled] =
-    useState<boolean>(() => {
-      return (
-        localStorage.getItem(
-          'estoque-ai-assistant-enabled'
-        ) !== 'false'
-      );
-    });
+  const [aiAssistantEnabled, setAiAssistantEnabledState] =
+    useState<boolean>(() => getAiAssistantEnabled());
 
   const [stockProducts, setStockProducts] =
     useState<StockProduct[]>([]);
@@ -320,31 +315,15 @@ function Settings({ user }: SettingsProps) {
   function toggleAiAnalysis() {
     const newValue = !aiAnalysisEnabled;
 
+    setAiAnalysisEnabledState(newValue);
     setAiAnalysisEnabled(newValue);
-
-    localStorage.setItem(
-      'estoque-ai-analysis-enabled',
-      String(newValue)
-    );
-
-    window.dispatchEvent(
-      new Event('preferences:updated')
-    );
   }
 
   function toggleAiAssistant() {
     const newValue = !aiAssistantEnabled;
 
+    setAiAssistantEnabledState(newValue);
     setAiAssistantEnabled(newValue);
-
-    localStorage.setItem(
-      'estoque-ai-assistant-enabled',
-      String(newValue)
-    );
-
-    window.dispatchEvent(
-      new Event('preferences:updated')
-    );
   }
 
   async function handleChangePassword() {

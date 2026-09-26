@@ -41,10 +41,18 @@ function App() {
 
   const [user, setUser] = useState<AuthUser | null>(getUser());
 
+  // =========================
+  // Logout automático
+  // =========================
+
   useEffect(() => {
     function handleAuthLogout() {
       setUser(null);
       setAuthenticated(false);
+      setProducts([]);
+      setEditingProduct(null);
+      setFocusProductForm(false);
+      setCurrentPage('dashboard');
     }
 
     window.addEventListener('auth:logout', handleAuthLogout);
@@ -102,6 +110,9 @@ function App() {
 
     setUser(data.user);
     setAuthenticated(true);
+    setCurrentPage('dashboard');
+    setEditingProduct(null);
+    setFocusProductForm(false);
   }
 
   function handleLogout() {
@@ -109,6 +120,10 @@ function App() {
 
     setUser(null);
     setAuthenticated(false);
+    setProducts([]);
+    setEditingProduct(null);
+    setFocusProductForm(false);
+    setCurrentPage('dashboard');
   }
 
   // =========================
@@ -134,7 +149,9 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Não foi possível criar o produto.');
+        throw new Error(
+          data.error || 'Não foi possível criar o produto.'
+        );
       }
 
       setProducts((currentProducts) => [data, ...currentProducts]);
@@ -166,7 +183,9 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Não foi possível excluir o produto.');
+        throw new Error(
+          data.error || 'Não foi possível excluir o produto.'
+        );
       }
 
       setProducts((currentProducts) =>
@@ -174,7 +193,9 @@ function App() {
       );
 
       if (productToDelete) {
-        setToastMessage(`"${productToDelete.name}" foi excluído com sucesso!`);
+        setToastMessage(
+          `"${productToDelete.name}" foi excluído com sucesso!`
+        );
       }
     } catch (error) {
       console.error('ERRO AO EXCLUIR PRODUTO:', error);
@@ -195,9 +216,7 @@ function App() {
 
   function editProduct(product: Product) {
     setEditingProduct(product);
-
     setCurrentPage('products');
-
     setFocusProductForm(true);
   }
 
@@ -224,7 +243,9 @@ function App() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Não foi possível atualizar o produto.');
+        throw new Error(
+          data.error || 'Não foi possível atualizar o produto.'
+        );
       }
 
       setProducts((currentProducts) =>
@@ -246,18 +267,34 @@ function App() {
       );
     }
   }
+
+  // =========================
+  // Usuário atualizado
+  // =========================
+
   function handleUserUpdated(updatedUser: AuthUser) {
     setUser(updatedUser);
   }
+
+  // =========================
+  // Tela de login
+  // =========================
 
   if (!authenticated) {
     return <Login onLogin={handleLogin} />;
   }
 
+  // =========================
+  // Sistema
+  // =========================
+
   return (
     <div className="min-h-screen bg-slate-100 lg:flex">
       {toastMessage && (
-        <Toast message={toastMessage} onClose={() => setToastMessage('')} />
+        <Toast
+          message={toastMessage}
+          onClose={() => setToastMessage('')}
+        />
       )}
 
       <Sidebar
@@ -308,7 +345,9 @@ function App() {
         <main className="mx-auto max-w-[1600px] p-4 sm:p-6 lg:p-8">
           {loading ? (
             <div className="flex min-h-[300px] items-center justify-center">
-              <p className="text-sm text-slate-500">Carregando produtos...</p>
+              <p className="text-sm text-slate-500">
+                Carregando produtos...
+              </p>
             </div>
           ) : (
             <>
@@ -363,12 +402,15 @@ function App() {
 
               {currentPage === 'users' && user?.role === 'ADMIN' && (
                 <Users
+                  currentUserId={user.id}
                   onToast={setToastMessage}
                   onUserUpdated={handleUserUpdated}
                 />
               )}
 
-              {currentPage === 'settings' && <Settings user={user} />}
+              {currentPage === 'settings' && (
+                <Settings user={user} />
+              )}
             </>
           )}
         </main>

@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { apiFetch } from '../utils/auth';
+import StockReport from '../components/StockReport';
+import {
+  getAiAnalysisEnabled,
+  getAiAssistantEnabled,
+} from '../utils/preferences';
 import {
   Package,
   TriangleAlert,
@@ -105,6 +110,14 @@ function Dashboard({
 
   const [loadingChat, setLoadingChat] = useState(false);
 
+  const [aiAnalysisEnabled, setAiAnalysisEnabled] = useState<boolean>(() =>
+    getAiAnalysisEnabled()
+  );
+
+  const [aiAssistantEnabled, setAiAssistantEnabled] = useState<boolean>(() =>
+    getAiAssistantEnabled()
+  );
+
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: 'assistant',
@@ -112,6 +125,66 @@ function Dashboard({
         'Olá! 👋 Sou o assistente de estoque. Você pode me perguntar sobre seus produtos, estoque baixo, reposições, categorias ou qualquer outra informação relacionada ao seu estoque.',
     },
   ]);
+
+  // ==========================================
+  // PREFERÊNCIAS DE IA
+  // ==========================================
+
+  useEffect(() => {
+    function syncAiPreferences() {
+      const analysisEnabled = getAiAnalysisEnabled();
+      const assistantEnabled = getAiAssistantEnabled();
+
+      setAiAnalysisEnabled(analysisEnabled);
+      setAiAssistantEnabled(assistantEnabled);
+
+      if (!analysisEnabled) {
+        setAnalysis('');
+        setAnalysisError('');
+        setLoadingAnalysis(false);
+      }
+
+      if (!assistantEnabled) {
+        setQuestion('');
+        setLoadingChat(false);
+      }
+    }
+
+    syncAiPreferences();
+
+    window.addEventListener(
+      'preferences:updated',
+      syncAiPreferences
+    );
+
+    return () => {
+      window.removeEventListener(
+        'preferences:updated',
+        syncAiPreferences
+      );
+    };
+  }, []);
+
+  useEffect(() => {
+    function syncFromStorage(event: StorageEvent) {
+      if (
+        event.key !== null &&
+        event.key !== 'estoque-ai-analysis-enabled' &&
+        event.key !== 'estoque-ai-assistant-enabled'
+      ) {
+        return;
+      }
+
+      setAiAnalysisEnabled(getAiAnalysisEnabled());
+      setAiAssistantEnabled(getAiAssistantEnabled());
+    }
+
+    window.addEventListener('storage', syncFromStorage);
+
+    return () => {
+      window.removeEventListener('storage', syncFromStorage);
+    };
+  }, []);
 
   // ==========================================
   // MOVIMENTAÇÕES
@@ -329,6 +402,10 @@ function Dashboard({
   // ==========================================
 
   async function analyzeStock() {
+    if (!getAiAnalysisEnabled()) {
+      return;
+    }
+
     try {
       setLoadingAnalysis(true);
 
@@ -368,6 +445,10 @@ function Dashboard({
   // ==========================================
 
   async function sendQuestion() {
+    if (!getAiAssistantEnabled()) {
+      return;
+    }
+
     const trimmedQuestion = question.trim();
 
     if (!trimmedQuestion || loadingChat || products.length === 0) {
@@ -1350,136 +1431,143 @@ function Dashboard({
           IA
       ========================================== */}
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-        <div className="flex items-center gap-2">
-          <Bot size={24} className="text-blue-600" />
+      {(aiAssistantEnabled || aiAnalysisEnabled) && (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          {aiAssistantEnabled && (
+            <>
+              <div className="flex items-center gap-2">
+                <Bot size={24} className="text-blue-600" />
 
-          <h2 className="text-xl font-bold text-slate-800">
-            Assistente inteligente de estoque
-          </h2>
-        </div>
+                <h2 className="text-xl font-bold text-slate-800">
+                  Assistente inteligente de estoque
+                </h2>
+              </div>
 
-        <p className="mt-1 text-sm text-slate-500">
-          Faça perguntas sobre os produtos cadastrados e receba respostas da IA.
-        </p>
+              <p className="mt-1 text-sm text-slate-500">
+                Faça perguntas sobre os produtos cadastrados e receba respostas da IA.
+              </p>
 
-        <div className="mt-5 h-[420px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4">
-          <div className="space-y-4">
-            {messages.map((message, index) => (
-              <div
-                key={`${message.role}-${index}`}
-                className={`flex ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
-              >
-                <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 ${
-                    message.role === 'user'
-                      ? 'bg-blue-600 text-white'
-                      : 'border border-slate-200 bg-white text-slate-700'
-                  }`}
-                >
-                  <div className="mb-1 flex items-center gap-2 text-xs font-semibold">
-                    {message.role === 'user' ? (
-                      <>
-                        <User size={14} />
-                        Você
-                      </>
-                    ) : (
-                      <>
-                        <Bot size={14} />
-                        Assistente
-                      </>
-                    )}
-                  </div>
+              <div className="mt-5 h-[420px] overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-4">
+                <div className="space-y-4">
+                  {messages.map((message, index) => (
+                    <div
+                      key={`${message.role}-${index}`}
+                      className={`flex ${
+                        message.role === 'user' ? 'justify-end' : 'justify-start'
+                      }`}
+                    >
+                      <div
+                        className={`max-w-[85%] rounded-2xl px-4 py-3 ${
+                          message.role === 'user'
+                            ? 'bg-blue-600 text-white'
+                            : 'border border-slate-200 bg-white text-slate-700'
+                        }`}
+                      >
+                        <div className="mb-1 flex items-center gap-2 text-xs font-semibold">
+                          {message.role === 'user' ? (
+                            <>
+                              <User size={14} />
+                              Você
+                            </>
+                          ) : (
+                            <>
+                              <Bot size={14} />
+                              Assistente
+                            </>
+                          )}
+                        </div>
 
-                  <p className="whitespace-pre-wrap text-sm leading-6">
-                    {message.content}
-                  </p>
+                        <p className="whitespace-pre-wrap text-sm leading-6">
+                          {message.content}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+
+                  {loadingChat && (
+                    <div className="flex justify-start">
+                      <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+                        <Loader2 size={18} className="animate-spin" />
+                        Analisando...
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            ))}
 
-            {loadingChat && (
-              <div className="flex justify-start">
-                <div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-                  <Loader2 size={18} className="animate-spin" />
-                  Analisando...
+              {products.length === 0 ? (
+                <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                  Cadastre pelo menos um produto para conversar com a IA.
                 </div>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {products.length === 0 ? (
-          <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
-            Cadastre pelo menos um produto para conversar com a IA.
-          </div>
-        ) : (
-          <div className="mt-4 flex gap-3">
-            <input
-              type="text"
-              value={question}
-              onChange={(event) => setQuestion(event.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ex.: Quais produtos precisam de reposição?"
-              disabled={loadingChat}
-              className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
-            />
-
-            <button
-              type="button"
-              onClick={sendQuestion}
-              disabled={!question.trim() || loadingChat}
-              className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loadingChat ? (
-                <Loader2 size={20} className="animate-spin" />
               ) : (
-                <Send size={20} />
+                <div className="mt-4 flex gap-3">
+                  <input
+                    type="text"
+                    value={question}
+                    onChange={(event) => setQuestion(event.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Ex.: Quais produtos precisam de reposição?"
+                    disabled={loadingChat}
+                    className="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:cursor-not-allowed disabled:bg-slate-100"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={sendQuestion}
+                    disabled={!question.trim() || loadingChat}
+                    className="flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-3 font-medium text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {loadingChat ? (
+                      <Loader2 size={20} className="animate-spin" />
+                    ) : (
+                      <Send size={20} />
+                    )}
+                    Enviar
+                  </button>
+                </div>
               )}
-              Enviar
-            </button>
-          </div>
-        )}
+            </>
+          )}
 
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            onClick={analyzeStock}
-            disabled={loadingAnalysis || products.length === 0}
-            className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {loadingAnalysis ? (
-              <>
-                <Loader2 size={18} className="animate-spin" />
-                Gerando análise...
-              </>
-            ) : (
-              <>
-                <Bot size={18} />
-                Gerar análise automática
-              </>
-            )}
-          </button>
+          {aiAssistantEnabled && aiAnalysisEnabled && (
+            <div className="my-6 border-t border-slate-200" />
+          )}
+
+          {aiAnalysisEnabled && (
+            <>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={analyzeStock}
+                  disabled={loadingAnalysis || products.length === 0}
+                  className="flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {loadingAnalysis ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      Gerando análise...
+                    </>
+                  ) : (
+                    <>
+                      <Bot size={18} />
+                      Gerar análise automática
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {analysisError && (
+                <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                  <strong>Erro:</strong> {analysisError}
+                </div>
+              )}
+
+              {analysis && <StockReport analysis={analysis} />}
+            </>
+          )}
         </div>
+      )}
 
-        {analysisError && (
-          <div className="mt-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-            <strong>Erro:</strong> {analysisError}
-          </div>
-        )}
-
-        {analysis && (
-          <div className="mt-4 rounded-xl border border-blue-100 bg-blue-50 p-5">
-            <h3 className="mb-3 font-bold text-blue-900">Análise automática</h3>
-
-            <div className="whitespace-pre-wrap text-sm leading-7 text-slate-700">
-              {analysis}
-            </div>
-          </div>
-        )}
-      </div>
     </section>
   );
 }
